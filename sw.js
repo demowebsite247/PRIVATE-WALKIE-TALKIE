@@ -1,5 +1,5 @@
 "use strict";
-const CACHE = "relay-v9";
+const CACHE = "relay-v10";
 const FILES = ["./", "./index.html", "./manifest.json", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png", "./icons/apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
@@ -19,6 +19,7 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // Firebase and other sites go straight to the network
+  if (url.pathname.startsWith("/Ludo")) return; // Ludo has its own page; never cache it as the Relay page
 
   // Pages: network first so updates arrive, cache as offline fallback
   if (req.mode === "navigate") {
