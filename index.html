@@ -142,7 +142,7 @@ body{grid-template-columns:17rem minmax(0,1fr) 19rem;grid-template-rows:auto min
 <script>
 /* Transport: Firebase Auth for identity, WebSocket to the Render backend for voice and presence */
 (function(){if(!window.firebase)return;
-const WS_URL="wss://relay-backend.onrender.com/ws";
+const WS_URL="wss://pwt-bakend.onrender.com/ws";
 firebase.initializeApp({apiKey:"AIzaSyD840048Sta1mu4SmGkzBL-CikkyeW_igw",authDomain:"private-walkie-talkie.firebaseapp.com",projectId:"private-walkie-talkie",appId:"1:830840396667:web:f4d103f947021e22943bde"});
 const auth=firebase.auth(),id=Math.random().toString(36).slice(2,8),H=[],watching=new Set();
 let uid=null,err="",ws=null,up=false,cur=null,retry=0,onReady=null;
