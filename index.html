@@ -5,6 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Relay – Push-to-talk</title>
 <meta name="author" content="MR TECH (Mijanur Rahman)">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#11181E">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Relay">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+#chList li.sr{display:flex;gap:.4rem;align-items:stretch}
+#chList li.sr .ch{flex:1;min-width:0}
+.del{flex:none;width:3rem;min-height:3rem;border:1px solid var(--line);border-radius:.7rem;background:transparent;font-size:1.05rem}
+.del:hover,.del:focus-visible{border-color:var(--tx);background:var(--tx);color:#fff}
+#installBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(5.2rem + env(safe-area-inset-bottom,0px));z-index:50;display:none;align-items:center;gap:.6rem;background:var(--sel);color:var(--selInk);border-radius:2rem;padding:.45rem .55rem .45rem 1rem;box-shadow:0 4px 18px rgba(0,0,0,.35);max-width:92vw}
+#installBar.show{display:flex}
+#installBar button{border:0;border-radius:2rem;padding:.4rem .9rem;font-weight:700}
+#installGo{background:var(--ptt);color:var(--pttInk)}
+#installX{background:transparent;color:inherit;opacity:.7}
+</style>
+
 
 
 <style>
@@ -109,7 +129,7 @@ body{grid-template-columns:17rem minmax(0,1fr) 19rem;grid-template-rows:auto min
   </div>
   <div id="log" class="panel" style="padding:.6rem .9rem;border:1px solid var(--line);border-radius:.7rem"><h2>Recent</h2><ul id="logList"></ul></div>
 </main>
-<section class="panel" id="people" aria-label="People"><h2 id="pTitle">People</h2><ul id="pList"></ul><button class="newroom" id="leave" hidden>Leave secure room</button></section>
+<section class="panel" id="people" aria-label="People"><h2 id="pTitle">People</h2><ul id="pList"></ul><button class="newroom" id="leave" hidden>Delete secure room</button></section>
 <nav class="bar" aria-label="Sections">
   <button data-view="channels"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Channels</button>
   <button data-view="talk" aria-current="true"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Talk</button>
@@ -231,7 +251,7 @@ function render(){
   $("room").textContent=(ch.sec?"🔒 ":"")+ch.n;$("leave").hidden=!ch.sec;$("now").textContent=ch.n+" · "+on+" online";
   $("pTitle").textContent="In "+ch.n;
   $("chList").innerHTML=CH.map((c,i)=>{const k=c.sec?(c.id in keys?"🔒 open":"🔒 locked"):(Object.keys(peers[c.id]||{}).length+(c.id===S.room?1:0))+" online";
-    return `<li><button class="ch" data-room="${c.id}" aria-current="${c.id===S.room}"><span>${esc(c.n)}</span><small>${k} · ${i+1}</small></button></li>`}).join("");
+    return `<li class="${c.sec?"sr":""}"><button class="ch" data-room="${c.id}" aria-current="${c.id===S.room}"><span>${esc(c.n)}</span><small>${k} · ${i+1}</small></button>${c.sec?`<button class="del" data-del="${c.id}" aria-label="Delete secure room ${esc(c.n)}" title="Delete room">🗑</button>`:""}</li>`}).join("");
   $("pList").innerHTML=m.map(p=>`<li class="who ${p[2]?"on":""} ${S.rx===p[0]?"talking":""}"><i class="dot"></i><span>${esc(p[0])}</span><span>${S.rx===p[0]?"speaking":p[2]?"online":"away"}</span></li>`).join("");
   $("logList").innerHTML=log.slice(0,5).map(l=>`<li class="who"><span>${esc(l[0])}</span><span>${l[1]}</span></li>`).join("")||`<li class="who"><span>No transmissions yet</span></li>`;
   document.querySelectorAll(".bar button").forEach(b=>b.setAttribute("aria-current",b.dataset.view===S.view));
@@ -280,7 +300,8 @@ addEventListener("keydown",e=>{
 addEventListener("keyup",e=>{if(e.code==="Space"){e.preventDefault();release()}});
 addEventListener("blur",release);
 function setRoom(id){const c=CH.find(x=>x.id===id);if(!c)return;if(c.sec&&!keys[id]){openS(c);return}if(S.tx)up();S.room=id;S.rx=null;render();hello()}
-$("chList").addEventListener("click",e=>{const b=e.target.closest("[data-room]");if(b){setRoom(b.dataset.room);if(innerWidth<768)S.view="talk";render()}});
+function delRoom(id){const c=CH.find(x=>x.id===id);if(!c||!c.sec)return;if(!confirm('Delete secure room "'+c.n+'" from this device? You will need the room name and passcode to join it again.'))return;if(S.tx)up();CH.splice(CH.indexOf(c),1);delete keys[id];delete peers[id];saveRooms();if(S.room===id){S.room="dispatch";S.rx=null;hello()}render()}
+$("chList").addEventListener("click",e=>{const d=e.target.closest("[data-del]");if(d){delRoom(d.dataset.del);return}const b=e.target.closest("[data-room]");if(b){setRoom(b.dataset.room);if(innerWidth<768)S.view="talk";render()}});
 document.querySelector(".bar").addEventListener("click",e=>{const b=e.target.closest("[data-view]");if(b){S.view=b.dataset.view;render()}});
 /* layout recalculation: no reload, state stays in S */
 let rt;const re=()=>{clearTimeout(rt);rt=setTimeout(env,60)};
@@ -321,7 +342,7 @@ $("sGo").onclick=async()=>{
     keys[id]=key;$("sPass").value="";$("sdlg").close();S.view="talk";setRoom(id)
   }catch(e){msg.textContent="Could not create the room. Try again."}
 };
-$("leave").onclick=()=>{const c=CH.find(x=>x.id===S.room);if(!c||!c.sec)return;CH.splice(CH.indexOf(c),1);delete keys[c.id];saveRooms();S.room="dispatch";render()};
+$("leave").onclick=()=>delRoom(S.room);
 /* real presence: heartbeat between open Relay tabs */
 const peers={};
 async function hello(){if(!bc)return;const c=CH.find(x=>x.id===S.room);if(!c)return;try{if(c.sec){const k=keys[c.id];if(!k)return;const a=await enc(k,te(D.name));bc.postMessage({type:"hi",from:me,room:c.id,sec:1,iv:a.iv,ct:a.ct})}else bc.postMessage({type:"hi",from:me,room:c.id,name:D.name})}catch(e){}}
@@ -338,6 +359,27 @@ if(FB){CH.filter(c=>!c.sec).forEach(c=>FB.watch(c.id));const st=()=>{const q=FB.
 $("aGo").onclick=async()=>{if(!FB)return;try{$("aMsg").textContent="Signing in…";const ok=await FB.login($("aMail").value.trim(),$("aPass").value);$("aPass").value="";$("aMsg").textContent=ok?"Admin access confirmed.":"Signed in, but this account is not in the admins list.";$("aClr").hidden=!ok}catch(e){$("aMsg").textContent="Sign in failed ("+(e.code||"error")+")."}};
 $("aClr").onclick=async()=>{if(FB&&confirm("Move everyone else out of this channel?")){try{await FB.clear(S.room);$("aMsg").textContent="Everyone else was moved out."}catch(e){$("aMsg").textContent="Not allowed for this account."}}};
 env();render();hello();
+</script>
+<div id="installBar" role="dialog" aria-label="Install app"><span id="installTxt">Install Relay on this device</span><button id="installGo">Install</button><button id="installX" aria-label="Close">✕</button></div>
+<script>
+(()=>{
+  const bar=document.getElementById("installBar"),go=document.getElementById("installGo"),x=document.getElementById("installX"),txt=document.getElementById("installTxt");
+  const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+  let dismissed=false;try{dismissed=sessionStorage.getItem("installX")==="1"}catch(e){}
+  if(standalone)return;
+  let ev=null;
+  const show=()=>{if(!dismissed)bar.classList.add("show")};
+  addEventListener("beforeinstallprompt",e=>{e.preventDefault();ev=e;txt.textContent="Install Relay on this device";go.hidden=false;show()});
+  addEventListener("appinstalled",()=>{bar.classList.remove("show");ev=null});
+  go.onclick=async()=>{if(!ev)return;ev.prompt();try{await ev.userChoice}catch(e){}ev=null;bar.classList.remove("show")};
+  x.onclick=()=>{bar.classList.remove("show");try{sessionStorage.setItem("installX","1")}catch(e){}};
+  // iPhone/iPad Safari has no install prompt: show a how-to instead
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)&&!/crios|fxios/i.test(navigator.userAgent);
+  if(ios){txt.textContent="Install: tap Share, then Add to Home Screen";go.hidden=true;show()}
+  if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost")){
+    addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+  }
+})();
 </script>
 </body>
 </html>
