@@ -6,7 +6,7 @@
 <title>Relay – Push-to-talk</title>
 <meta name="author" content="MR TECH (Mijanur Rahman)">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#11181E">
+<meta name="theme-color" content="#0b1015">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Relay">
@@ -18,87 +18,130 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11181E;--panel:#1A242C;--ink:#E4EBEF;--mute:#8FA2AF;--line:#2B3944;--sel:#E4EBEF;--selInk:#11181E}}
 :root[data-theme="dark"]{--bg:#11181E;--panel:#1A242C;--ink:#E4EBEF;--mute:#8FA2AF;--line:#2B3944;--sel:#E4EBEF;--selInk:#11181E}
 *,*::before,*::after{box-sizing:border-box}
-html,body{height:100%;margin:0;background:#0b1015}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:radial-gradient(90% 70% at 50% 30%,#16212a,#06090c)}
 body{color:var(--ink);font-family:"Arial Narrow","Roboto Condensed",system-ui,sans-serif;overflow:hidden;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 input,select,dialog{-webkit-user-select:text;user-select:text}
 button{font:inherit;color:inherit;cursor:pointer}
-button:focus-visible{outline:.15rem solid #F2B705;outline-offset:.1rem}
-[hidden]{display:none!important}
+button:focus-visible,.dial:focus-visible{outline:.15rem solid #F2B705;outline-offset:.15rem}
 ul{list-style:none;margin:0;padding:0;display:grid;gap:.4rem}
 
-/* ===== The whole app is one walkie-talkie that fills the screen ===== */
-.radio{height:100vh;height:100dvh;width:100%;max-width:30rem;margin:0 auto;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
-.ant{flex:none;width:1.1rem;height:1.2rem;margin-left:16%;border-radius:.6rem .6rem 0 0;background:linear-gradient(90deg,#0d1216,#37444f 45%,#0d1216);box-shadow:0 0 0 1px #05080a}
-.shell{flex:1;min-height:0;display:flex;flex-direction:column;gap:.6rem;padding:.8rem .85rem calc(.8rem + env(safe-area-inset-bottom,0px));
-  border-radius:1.8rem 1.8rem 0 0;border:2px solid #05080a;border-bottom:0;
-  background:linear-gradient(165deg,#34414c 0%,#1b242c 45%,#10161b 100%);
-  box-shadow:inset 0 2px 0 #5a6b78,inset 0 -6px 14px #0008;overflow:hidden}
+/* ===== One walkie-talkie = the whole screen ===== */
+.radio{position:relative;height:100vh;height:100dvh;width:100%;max-width:30rem;margin:0 auto}
+.ant{position:absolute;z-index:3;top:0;left:13%;width:1.15rem;height:calc(env(safe-area-inset-top,0px) + 1.2rem);border-radius:0 0 .5rem .5rem;
+  background:linear-gradient(90deg,#05080a,#3a4852 45%,#05080a);box-shadow:0 0 0 1px #05080a,0 4px 8px #0008}
+.shell{position:absolute;inset:0;display:flex;flex-direction:column;gap:.55rem;padding:calc(env(safe-area-inset-top,0px) + 1.35rem) .85rem calc(.8rem + env(safe-area-inset-bottom,0px));overflow:hidden;
+  background:
+    repeating-linear-gradient(45deg,#ffffff07 0 2px,#0000 2px 4px),
+    radial-gradient(120% 50% at 50% 0%,#2c3b48,#0000 65%),
+    linear-gradient(180deg,#1a242d,#0d1319 55%,#080c10);
+  box-shadow:inset 0 0 0 2px #05080a,inset 0 3px 0 #4b5b68}
+@media (min-width:600px){.shell{border-radius:2rem;box-shadow:inset 0 0 0 2px #05080a,inset 0 3px 0 #4b5b68,0 0 60px #0009}.ant{border-radius:.5rem .5rem .5rem .5rem}}
 
-/* top deck: LED, name plate, volume */
-.deck{flex:none;display:flex;align-items:center;gap:.7rem;padding:0 .2rem}
-.led{flex:none;width:.9rem;height:.9rem;border-radius:50%;background:#2F8F5B;box-shadow:0 0 .6rem #2F8F5B,inset 0 1px 1px #fff6;border:1px solid #05080a;transition:background .15s,box-shadow .15s}
+/* top row: channel wheel | plate | volume wheel */
+.top{flex:none;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:.4rem}
+.dialbox{display:grid;justify-items:center;gap:.25rem}
+.dial{--k:clamp(4.4rem,min(25vw,12.5dvh),6.6rem);position:relative;width:var(--k);height:var(--k);border-radius:50%;touch-action:none;cursor:grab;
+  background:radial-gradient(circle at 50% 38%,#1b252d,#090d11 72%);box-shadow:inset 0 2px 6px #000c,0 1px 0 #55646f,0 0 0 1px #05080a}
+.dial.drag{cursor:grabbing}
+.ticks i{position:absolute;left:50%;top:50%;width:.17rem;height:.42rem;margin:-.21rem 0 0 -.085rem;border-radius:1px;background:#3b4852;transform:rotate(var(--t)) translateY(calc(var(--k)*-.435));transition:background .15s,box-shadow .15s}
+.ticks i.on{background:#f3c04a;box-shadow:0 0 .4rem #f3c04a}
+.cap{position:absolute;inset:16%;border-radius:50%;transform:rotate(var(--a,-135deg));transition:transform .2s cubic-bezier(.3,1.5,.5,1);
+  background:repeating-conic-gradient(#aab5be 0 5deg,#2b343c 5deg 10deg);box-shadow:0 5px 10px #000b,0 0 0 1px #05080a}
+.dial.drag .cap{transition:none}
+.cap::before{content:"";position:absolute;inset:7%;border-radius:50%;background:radial-gradient(circle at 38% 30%,#e9eef1,#98a5b0 45%,#4a5660 100%);box-shadow:inset 0 1px 2px #fff9,inset 0 -3px 6px #0006}
+.cap .pt{position:absolute;left:50%;top:11%;width:.24rem;height:26%;margin-left:-.12rem;border-radius:2px;background:#d6372b;box-shadow:0 0 .4rem #d6372b88}
+.dial::after{content:"";position:absolute;inset:16%;border-radius:50%;pointer-events:none;background:conic-gradient(from 25deg,#fff0 0 18%,#fff4 25%,#fff0 32% 68%,#fff3 75%,#fff0 82%)}
+.dl{font-size:.64rem;font-weight:700;letter-spacing:.14em;color:#c9a45a;text-transform:uppercase;white-space:nowrap}
+.dl span{color:#e8eef2}
+.mid{display:grid;justify-items:center;gap:.3rem;text-align:center;min-width:0}
+.led{width:.85rem;height:.85rem;border-radius:50%;background:#2F8F5B;box-shadow:0 0 .6rem #2F8F5B,inset 0 1px 1px #fff6;border:1px solid #05080a;transition:background .15s,box-shadow .15s}
 body.offline .led{background:#6b4a14;box-shadow:none}
-#talk:has(.ptt.busy) .led{background:#F2B705;box-shadow:0 0 .7rem #F2B705}
+#talk:has(.ptt.busy) .led{background:#2ee6a6;box-shadow:0 0 .8rem #2ee6a6}
 #talk:has(.ptt.tx) .led{background:#ff3b2f;box-shadow:0 0 .9rem #ff3b2f}
-.plate{font-weight:700;letter-spacing:.2em;font-size:.8rem;color:#9fb0bc;text-transform:uppercase}
-.vol{margin-left:auto;display:flex;align-items:center;gap:.45rem;font-size:.62rem;letter-spacing:.12em;color:#8fa2af}
-.vol input{width:min(36vw,9rem);height:1.7rem;margin:0;accent-color:#F2B705;background:none;border:0;padding:0}
+.plate{font-weight:700;letter-spacing:.24em;font-size:.82rem;color:#c9d3da;text-transform:uppercase;padding-left:.24em}
+.conn{font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:#2ee6a6}
+body.offline .conn{color:#e0a458}
 
 /* LCD */
-.lcd{flex:none;padding:.5rem .8rem .65rem;border-radius:.7rem;border:2px solid #05080a;color:#16240f;text-align:center;
-  background:linear-gradient(180deg,#a9c196,#8fa97c);box-shadow:inset 0 3px 8px #0006,0 1px 0 #5a6b78;font-family:ui-monospace,"Courier New",monospace}
-.lcdtop{display:flex;justify-content:space-between;gap:.5rem;font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;opacity:.8;white-space:nowrap}
-.lcdtop span{overflow:hidden;text-overflow:ellipsis}
-.lcd h1{margin:.25rem 0 0;font-size:clamp(1.2rem,6vw,1.7rem);text-transform:uppercase;letter-spacing:.04em;line-height:1.1;overflow-wrap:anywhere}
-#status{margin:.3rem 0 0;font-size:.78rem;text-transform:uppercase;letter-spacing:.03em;color:#243b17;min-height:1.2em}
-.netMsg{margin:.4rem 0 0;color:#6a1d12;font-size:.64rem;line-height:1.3;max-height:5.2rem;overflow:auto}
+.lcd{flex:none;position:relative;overflow:hidden;padding:.4rem .8rem .55rem;border-radius:.8rem;border:2px solid #05080a;text-align:center;color:#6ff8d3;
+  background:linear-gradient(180deg,#0b1e23,#04100f);box-shadow:inset 0 0 0 1px #1c3b42,inset 0 8px 18px #000b,0 1px 0 #5a6b78;font-family:ui-monospace,"Courier New",monospace}
+.lcd::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(160deg,#ffffff16,#0000 38%)}
+.micro{display:grid;grid-template-columns:1fr auto 1fr;gap:.4rem;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:#4fb79d;white-space:nowrap}
+.micro span:first-child{text-align:left}.micro span:last-child{text-align:right}
+.digits{margin:.05rem 0 0;font-weight:700;font-size:clamp(2rem,10vw,2.9rem);line-height:1;letter-spacing:.08em;font-variant-numeric:tabular-nums;text-shadow:0 0 .7rem #2de6b466}
+#talk:has(.ptt.tx) .digits{color:#ff7a6e;text-shadow:0 0 .8rem #ff3b2f77}
+#talk:has(.ptt.busy) .digits{color:#9dffe3}
+.lcd h1{margin:.2rem 0 0;font-size:.95rem;text-transform:uppercase;letter-spacing:.14em;line-height:1.15;overflow-wrap:anywhere;color:#a5fbe4}
+#status{margin:.2rem 0 0;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#5bc2a8;min-height:1.1em}
+.lcd .netMsg{margin:.3rem 0 0;color:#ffb36b;font-size:.6rem;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
-/* hardware keys */
-.ck{min-width:0;height:2.7rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.08rem;padding:0 .3rem;line-height:1.05;text-align:center;
-  border:1px solid #05080a;border-radius:.6rem;background:linear-gradient(180deg,#3d4a56,#232d36);color:#d3dee6;font-size:.8rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
-  box-shadow:inset 0 1px 0 #6b7c89,0 2px 0 #05080a}
+/* speaker */
+.grille{flex:none;height:2.5rem;border-radius:.9rem;border:2px solid #05080a;
+  background:radial-gradient(circle,#000 0 .12rem,#0000 .16rem) 0 0/.62rem .62rem,linear-gradient(180deg,#46535e,#27313a);
+  box-shadow:inset 0 3px 8px #000b,0 1px 0 #5a6b78}
+#talk:has(.ptt.busy) .grille{animation:spk .35s linear infinite alternate;box-shadow:inset 0 3px 8px #000b,inset 0 0 1.4rem #2ee6a699,0 0 1rem #2ee6a644}
+#talk:has(.ptt.tx) .grille{box-shadow:inset 0 3px 8px #000b,inset 0 0 1rem #ff3b2f44,0 1px 0 #5a6b78}
+
+/* push-to-talk */
+.wrap{flex:1 1 0;min-height:0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.55rem;overflow:hidden;container-type:size}
+.pttbox{--s:clamp(6rem,min(58vw,30dvh),17rem);position:relative;width:var(--s);height:var(--s);flex:none}
+@supports (height:1cqh){.pttbox{--s:clamp(4.5rem,min(62cqw,(100cqh - 4.6rem) / 1.18),16rem)}}
+@supports (height:1cqh){@media (max-height:720px){.pttbox{--s:clamp(4.5rem,min(62cqw,(100cqh - 2.8rem) / 1.18),16rem)}}}
+.pttbox::before{content:"";position:absolute;inset:-8%;border-radius:50%;background:conic-gradient(from 200deg,#d4dce2,#59666f,#eef2f4,#47545d,#d4dce2);box-shadow:0 12px 26px #000b}
+.pttbox::after{content:"";position:absolute;inset:-3.6%;border-radius:50%;background:radial-gradient(circle,#05080a 60%,#12181e);box-shadow:inset 0 3px 8px #000}
+.rip{position:absolute;inset:-6%;border-radius:50%;border:2px solid var(--rc,#2ee6a6);opacity:0;pointer-events:none}
+#talk:has(.ptt.busy) .rip{--rc:#2ee6a6;animation:rip 1.7s ease-out infinite}
+#talk:has(.ptt.tx) .rip{--rc:#ff4a3d;animation:rip 1.2s ease-out infinite}
+.rip:nth-of-type(2){animation-delay:.55s!important}.rip:nth-of-type(3){animation-delay:1.1s!important}
+.ptt{position:absolute;z-index:2;inset:0;width:100%;height:100%;border-radius:50%;border:0;padding:0 6%;touch-action:none;-webkit-touch-callout:none;overflow:hidden;
+  font-weight:700;font-size:calc(var(--s)*.088);text-transform:uppercase;letter-spacing:.05em;line-height:1.15;
+  background:
+    repeating-radial-gradient(circle,#ffffff00 0 .22rem,#00000012 .22rem .28rem),
+    radial-gradient(circle at 35% 26%,#fff0bd,#f3c04a 42%,#c28a1a 78%,#8a5d0a);
+  color:#2b1d00;text-shadow:0 1px 0 #fff6;transition:transform .08s,background .2s,color .2s;
+  box-shadow:inset 0 5px 9px #fff8,inset 0 -9px 16px #0006,0 0 0 1px #05080a;animation:idle 3.4s ease-in-out infinite}
+.ptt.tx{background:repeating-radial-gradient(circle,#fff0 0 .22rem,#0000001a .22rem .28rem),radial-gradient(circle at 35% 26%,#ff9a8d,#e2352a 52%,#8e1a12);color:#fff;text-shadow:0 1px 2px #0008;
+  font-size:calc(var(--s)*.074);transform:scale(.97);animation:txp .8s ease-in-out infinite}
+.ptt.busy{background:repeating-radial-gradient(circle,#fff0 0 .22rem,#00000014 .22rem .28rem),radial-gradient(circle at 35% 26%,#a8ffe6,#19c995 48%,#0a7a5c);color:#022a1f;text-shadow:0 1px 0 #fff5;animation:breathe 1s ease-in-out infinite}
+.meter{display:flex;gap:.25rem;align-items:flex-end;height:1.1rem}
+.meter i{width:.5rem;height:20%;background:#37444f;border-radius:2px;transition:height .08s}
+#talk:has(.ptt.tx) .meter i{background:#ff7a6e}
+#talk:has(.ptt.busy) .meter i{background:#2ee6a6;animation:eq .5s ease-in-out infinite alternate}
+#talk:has(.ptt.busy) .meter i:nth-child(2n){animation-duration:.37s}
+#talk:has(.ptt.busy) .meter i:nth-child(3n){animation-duration:.62s}
+.hint{margin:0;color:#8fa2af;font-size:.68rem;line-height:1.25;text-align:center;max-width:100%}
+@keyframes idle{50%{box-shadow:inset 0 5px 9px #fff8,inset 0 -9px 16px #0006,0 0 0 1px #05080a,0 0 1.4rem #f3c04a55}}
+@keyframes txp{50%{box-shadow:inset 0 5px 9px #fff5,inset 0 -9px 16px #0006,0 0 0 1px #05080a,0 0 2rem #ff3b2fa0}}
+@keyframes breathe{50%{transform:scale(1.04)}}
+@keyframes rip{0%{transform:scale(1);opacity:.75}100%{transform:scale(1.5);opacity:0}}
+@keyframes eq{from{height:18%}to{height:100%}}
+@keyframes spk{from{background-position:0 0,0 0}to{background-position:.045rem .035rem,0 0}}
+
+/* keys */
+.fk{flex:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.35rem}
+.ck{min-width:0;height:2.6rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.08rem;padding:0 .2rem;line-height:1.05;text-align:center;
+  border:1px solid #05080a;border-radius:.65rem;background:linear-gradient(180deg,#2b3741,#151c23);color:#e1e8ed;font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  box-shadow:inset 0 1px 0 #5d6d7a,0 2px 0 #05080a}
 .ck span,.ck small{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ck small{font-size:.6rem;font-weight:400;opacity:.75;letter-spacing:.02em}
-.ck:active{transform:translateY(1px);box-shadow:inset 0 1px 0 #6b7c89,0 1px 0 #05080a}
-.ck[aria-current="true"]{background:linear-gradient(180deg,#b9d1a5,#8fa97c);color:#16240f;box-shadow:inset 0 2px 5px #0005,0 0 .7rem #8fa97c77}
-.ck.add{border-style:dashed;background:transparent;box-shadow:none}
-.ck.danger{height:2.2rem;width:100%;color:#ff8a80;background:transparent;box-shadow:none;border-color:#5a2a26}
-.chs{flex:none;display:grid;gap:.4rem}
-.chgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem;max-height:9.3rem;overflow-y:auto;padding:.1rem .1rem .25rem}
-.fk{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.4rem}
-
-/* speaker + push-to-talk */
-.wrap{flex:1 1 0;min-height:0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6rem;overflow:hidden;container-type:size}
-@supports (height:1cqh){.ptt{--s:clamp(5rem,min(72cqw,100cqh - 5rem),17rem)}}
-@supports (height:1cqh){@media (max-height:720px){.ptt{--s:clamp(5rem,min(72cqw,100cqh - 3rem),17rem)}}}
-.ptt{--s:clamp(6rem,min(58vw,30dvh),17rem);width:var(--s);height:var(--s);border-radius:50%;border:0;flex:none;touch-action:none;-webkit-touch-callout:none;
-  font-weight:700;font-size:calc(var(--s)*.088);text-transform:uppercase;letter-spacing:.04em;line-height:1.15;padding:0 6%;overflow:hidden;white-space:normal;word-break:keep-all;
-  background:radial-gradient(circle at 35% 28%,#ffd84d,#F2B705 55%,#b88500);color:#2A2000;transition:transform .08s,background .15s;
-  box-shadow:0 0 0 calc(var(--s)*.045) #0b1015,0 0 0 calc(var(--s)*.06) #4a5966,0 10px 18px #000a,inset 0 4px 8px #fff6,inset 0 -8px 14px #0005}
-.ptt.tx{font-size:calc(var(--s)*.074);background:radial-gradient(circle at 35% 28%,#ff7a6e,#D6372B 55%,#8e1a12);color:#fff;transform:scale(.97);
-  box-shadow:0 0 0 calc(var(--s)*.045) #0b1015,0 0 0 calc(var(--s)*.06) #ff3b2f,0 0 28px #ff3b2f88,inset 0 6px 12px #0006}
-.ptt.busy{background:radial-gradient(circle at 35% 28%,#5f6e7a,#3a4651 60%,#27313a);color:#b9c6cf;
-  box-shadow:0 0 0 calc(var(--s)*.045) #0b1015,0 0 0 calc(var(--s)*.06) #4a5966,inset 0 6px 12px #0006}
-.meter{display:flex;gap:.25rem;align-items:flex-end;height:1.2rem}
-.meter i{width:.55rem;height:20%;background:#37444f;border-radius:2px;transition:height .08s}
-#talk.tx-on .meter i{background:#F2B705}
-.hint{margin:0;color:#8fa2af;font-size:.7rem;line-height:1.25;text-align:center;max-width:100%}
-.credit{flex:none;text-align:center;font-size:.62rem;letter-spacing:.04em;color:#6f8290;text-decoration:none}
-.credit b{color:#9fb0bc}
+.ck small{font-size:.56rem;font-weight:400;color:#d9ae5a;letter-spacing:.04em}
+.ck:active{transform:translateY(1px);box-shadow:inset 0 1px 0 #5d6d7a,0 1px 0 #05080a}
+.ck.danger{width:100%;height:2.6rem;margin-top:.8rem;background:none;box-shadow:none;color:#c0392b;border-color:#c0392b}
+.credit{flex:none;text-align:center;font-size:.6rem;letter-spacing:.04em;color:#6f8290;text-decoration:none}
+.credit b{color:#a6b4be}
 
 @media (max-height:720px){.credit,.hint{display:none}}
-@media (max-height:620px){.plate{display:none}.lcd h1{font-size:1.2rem}}
-@media (min-width:600px){.shell{border-radius:2.2rem 2.2rem 0 0}}
+@media (max-height:620px){.micro{display:none}.digits{font-size:2rem}.grille{height:1.8rem}.plate{display:none}}
 @media (orientation:landscape) and (max-height:520px){
   body{overflow:auto}
   .radio{height:auto;min-height:100dvh;max-width:44rem}
-  .shell{overflow:visible}
-  .wrap{flex:none;padding:.5rem 0}
-  .ptt{--s:9rem}
+  .shell{position:relative;min-height:100dvh;overflow:visible}
+  .wrap{flex:none;padding:.9rem 0}
+  .pttbox{--s:9rem!important}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
-/* dialogs (people, settings, secure room, name) */
+/* dialogs */
 dialog{border:1px solid var(--line);border-radius:1rem;background:var(--panel);color:var(--ink);width:min(92vw,26rem);max-height:90dvh;overflow:auto;padding:1rem 1.2rem;font:inherit}
 dialog::backdrop{background:#0009}
 dialog h2{margin:0 0 .4rem;font-size:1.3rem}
@@ -128,23 +171,30 @@ dialog input[type=checkbox]{width:1.5rem;height:1.5rem;min-height:0}
 <main id="talk" class="radio">
   <div class="ant" aria-hidden="true"></div>
   <div class="shell">
-    <div class="deck">
-      <i class="led" aria-hidden="true"></i>
-      <span class="plate">Relay</span>
-      <label class="vol">VOL<input type="range" id="qVol" min="0" max="1" step=".05" aria-label="Volume"></label>
+    <div class="top">
+      <div class="dialbox">
+        <div class="dial" id="dCh" role="slider" tabindex="0" aria-label="Channel" aria-valuemin="1" aria-valuenow="1" aria-valuemax="5"><div class="ticks" id="chTicks"></div><div class="cap"><i class="pt"></i></div></div>
+        <b class="dl">CH <span id="chVal"></span></b>
+      </div>
+      <div class="mid"><i class="led" aria-hidden="true"></i><span class="plate">Relay</span><span class="conn" id="conn"></span></div>
+      <div class="dialbox">
+        <div class="dial" id="dVol" role="slider" tabindex="0" aria-label="Volume" aria-valuemin="0" aria-valuenow="70" aria-valuemax="100"><div class="ticks" id="volTicks"></div><div class="cap"><i class="pt"></i></div></div>
+        <b class="dl">VOL <span id="volVal"></span></b>
+      </div>
     </div>
     <div class="lcd">
-      <div class="lcdtop"><span id="chno"></span><span id="now"></span></div>
+      <div class="micro"><span id="dlab">CH</span><span id="secb"></span><span id="now"></span></div>
+      <p class="digits" id="digits">01</p>
       <h1 id="room"></h1>
       <p id="status"></p>
       <p class="netMsg" hidden></p>
     </div>
-    <div class="chs">
-      <div class="chgrid" id="chList" role="group" aria-label="Channels"></div>
-      <button class="ck danger" id="leave" hidden>Delete secure room</button>
-    </div>
+    <div class="grille" aria-hidden="true"></div>
     <div class="wrap">
-      <button class="ptt" id="ptt" aria-label="Push to talk">Hold to talk</button>
+      <div class="pttbox">
+        <i class="rip"></i><i class="rip"></i><i class="rip"></i>
+        <button class="ptt" id="ptt" aria-label="Push to talk">Hold to talk</button>
+      </div>
       <div class="meter" id="meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <p class="hint" id="hint"></p>
     </div>
@@ -152,7 +202,8 @@ dialog input[type=checkbox]{width:1.5rem;height:1.5rem;min-height:0}
       <button class="ck" id="kMode"><span>Mode</span><small></small></button>
       <button class="ck" id="kBeep"><span>Beep</span><small></small></button>
       <button class="ck" id="kPeople"><span>People</span><small></small></button>
-      <button class="ck" id="gear" aria-label="Settings"><span>Menu</span><small>Settings</small></button>
+      <button class="ck" id="kRoom"><span>Secure</span><small>new room</small></button>
+      <button class="ck" id="gear" aria-label="Settings"><span>Menu</span><small>settings</small></button>
     </div>
     <a class="credit" href="https://mrtech.nptrunamentbd.top/" target="_blank" rel="noopener noreferrer">Developed by <b>MR TECH</b> · © 2026 Mijanur Rahman</a>
   </div>
@@ -162,6 +213,7 @@ dialog input[type=checkbox]{width:1.5rem;height:1.5rem;min-height:0}
 <ul id="pList"></ul>
 <h3>Recent</h3>
 <ul id="logList"></ul>
+<button class="ck danger" id="leave" hidden>Delete this secure room</button>
 <div class="dact"><button class="pri" id="pClose">Done</button></div></dialog>
 <dialog id="ndlg"><h2>Welcome to Relay</h2>
 <label class="row">Your name<input id="nName" maxlength="16" autocomplete="off" placeholder="e.g. Rahim"></label>
@@ -229,7 +281,7 @@ connect();
 })();
 </script>
 <script>
-const CH=[{id:"dispatch",n:"Dispatch"},{id:"field",n:"Field team"},{id:"warehouse",n:"Warehouse"},{id:"security",n:"Security"},{id:"family",n:"Family"}];
+const CH=[{id:"dispatch",n:"Dispatch"},{id:"field",n:"Field team"},{id:"warehouse",n:"Warehouse"},{id:"security",n:"Security"},{id:"family",n:"Family"},{id:"ops",n:"Operations"},{id:"support",n:"Support"},{id:"delivery",n:"Delivery"},{id:"office",n:"Office"},{id:"emergency",n:"Emergency"}];
 
 const S={room:"dispatch",view:"talk",tx:false,rx:null};
 const D={name:"You",mode:"hold",beep:true,hap:true,wake:false,dsp:true,vol:.7,theme:"auto",low:"auto"};
@@ -292,26 +344,46 @@ function updateNet(){const t=netText();document.body.classList.toggle("offline",
 function members(){const c=CH.find(x=>x.id===S.room);return[[D.name+" (you)",c.id,1],...Object.values(peers[c.id]||{}).map(p=>[p.n,c.id,1])]}
 function render(){
   const ch=CH.find(c=>c.id===S.room),m=members(),on=m.filter(p=>p[2]).length;
-  $("room").textContent=(ch.sec?"🔒 ":"")+ch.n;$("leave").hidden=!ch.sec;$("chno").textContent=ch.sec?"Secure":"CH "+String(CH.indexOf(ch)+1).padStart(2,"0");$("now").textContent=on+" online"+((!window.fbBus||fbBus.state()!=="online")?" · offline":"");updateNet();quick(on);
+  $("room").textContent=(ch.sec?"🔒 ":"")+ch.n;$("leave").hidden=!ch.sec;$("secb").textContent=ch.sec?"🔒 secure":"";$("conn").textContent=(!window.fbBus||fbBus.state()!=="online")?"Offline":"Live";$("now").textContent=on+" online";updateNet();quick(on);
   $("pTitle").textContent="In "+ch.n;
-  $("chList").innerHTML=CH.map((c,i)=>{const k=c.sec?(c.id in keys?"🔒 open":"🔒 locked"):(Object.keys(peers[c.id]||{}).length+(c.id===S.room?1:0))+" on";
-    return `<button class="ck" data-room="${c.id}" aria-current="${c.id===S.room}"><span>${esc(c.n)}</span><small>${i+1} · ${k}</small></button>`}).join("")+`<button class="ck add" data-new="1"><span>+ Secure</span><small>new room</small></button>`;
   $("pList").innerHTML=m.map(p=>`<li class="who ${p[2]?"on":""} ${S.rx===p[0]?"talking":""}"><i class="dot"></i><span>${esc(p[0])}</span><span>${S.rx===p[0]?"speaking":p[2]?"online":"away"}</span></li>`).join("");
   $("logList").innerHTML=log.slice(0,5).map(l=>`<li class="who"><span>${esc(l[0])}</span><span>${l[1]}</span></li>`).join("")||`<li class="who"><span>No transmissions yet</span></li>`;
   status();
+}
+let dialIdx=-1,dragN=0;
+const pad2=n=>String(n).padStart(2,"0");
+function lcd(){
+  const i=CH.findIndex(c=>c.id===S.room),act=S.tx||!!S.rx;
+  if(act){if(!S.t0)S.t0=Date.now();const s=Math.floor((Date.now()-S.t0)/1000);$("digits").textContent=pad2(Math.floor(s/60))+":"+pad2(s%60);$("dlab").textContent=S.tx?"TX":"RX"}
+  else{S.t0=0;$("digits").textContent=pad2((dialIdx>=0?dialIdx:i)+1);$("dlab").textContent="CH"}
+}
+function setDial(el,f){el.style.setProperty("--a",(-135+f*270)+"deg")}
+function buildTicks(){
+  const n=CH.length,c=$("chTicks");
+  if(c.childElementCount!==n)c.innerHTML=CH.map((_,i)=>`<i style="--t:${n>1?-135+i*270/(n-1):0}deg"></i>`).join("");
+  const i=CH.findIndex(x=>x.id===S.room);[...c.children].forEach((t,j)=>t.classList.toggle("on",j===i));
+  [...$("volTicks").children].forEach((t,k)=>t.classList.toggle("on",D.vol>0&&k/10<=D.vol+1e-6));
+}
+function dialSync(){
+  if(dragN>0)return;
+  const n=CH.length,i=Math.max(0,CH.findIndex(c=>c.id===S.room));
+  setDial($("dCh"),n>1?i/(n-1):0);setDial($("dVol"),D.vol);
+  $("chVal").textContent=pad2(i+1);$("volVal").textContent=Math.round(D.vol*100);
+  $("dCh").setAttribute("aria-valuenow",i+1);$("dCh").setAttribute("aria-valuemax",n);$("dVol").setAttribute("aria-valuenow",Math.round(D.vol*100));
+  buildTicks();
 }
 function quick(on){
   $("kMode").lastElementChild.textContent=D.mode==="latch"?"Tap":"Hold";
   $("kBeep").lastElementChild.textContent=D.beep?"On":"Off";$("kBeep").setAttribute("aria-pressed",D.beep);
   $("kPeople").lastElementChild.textContent=on+" online";
-  $("qVol").value=D.vol}
+  dialSync()}
 function status(){
   const p=$("ptt");p.classList.toggle("tx",S.tx);p.classList.toggle("busy",!!S.rx&&!S.tx);
-  p.textContent=S.tx?"Transmitting":S.rx?"Channel busy":D.mode==="latch"?"Tap to talk":"Hold to talk";
+  p.textContent=S.tx?"Transmitting":S.rx?"Receiving":D.mode==="latch"?"Tap to talk":"Hold to talk";
   $("status").textContent=S.tx?(mic===false?"No microphone access, nothing is sent":"You are live on "+CH.find(c=>c.id===S.room).n):S.rx?S.rx+" is speaking":"Channel is clear";
-  $("talk").classList.toggle("tx-on",S.tx||!!S.rx);
+  $("talk").classList.toggle("tx-on",S.tx||!!S.rx);lcd();
 }
-function hint(){const t=matchMedia("(pointer:coarse)").matches,l=D.mode==="latch";$("hint").textContent=t?(l?"Tap once to start, tap again to stop":"Press and hold the button to talk"):(l?"Click or press Space to start and stop":"Hold the button or Space to talk")+" · keys 1–5 switch channel"}
+function hint(){const t=matchMedia("(pointer:coarse)").matches,l=D.mode==="latch";$("hint").textContent=t?(l?"Tap once to start, tap again to stop":"Press and hold the button to talk"):(l?"Click or press Space to start and stop":"Hold the button or Space to talk")+" · keys 1–9 and 0 switch channel"}
 function env(){
   const w=innerWidth,h=innerHeight,t=matchMedia("(pointer:coarse)").matches||navigator.maxTouchPoints>0;
   const d=w<768?"Mobile":w<1100?"Tablet":w<1920?"Laptop / desktop":"Large display";
@@ -343,19 +415,18 @@ p.addEventListener("contextmenu",e=>e.preventDefault());
 addEventListener("keydown",e=>{
   if(e.target.closest&&e.target.closest("input,textarea"))return;
   if(e.code==="Space"&&!e.repeat){e.preventDefault();press()}
-  else if(/^[1-5]$/.test(e.key)&&!e.ctrlKey&&!e.metaKey){setRoom(CH[+e.key-1].id)}
+  else if(/^[0-9]$/.test(e.key)&&!e.ctrlKey&&!e.metaKey){const c=CH[e.key==="0"?9:+e.key-1];if(c)setRoom(c.id)}
 });
 addEventListener("keyup",e=>{if(e.code==="Space"){e.preventDefault();release()}});
 addEventListener("blur",release);
 function setRoom(id){const c=CH.find(x=>x.id===id);if(!c)return;if(c.sec&&!keys[id]){openS(c);return}if(S.tx)up();S.room=id;S.rx=null;render();hello()}
 function delRoom(id){const c=CH.find(x=>x.id===id);if(!c||!c.sec)return;if(!confirm('Delete secure room "'+c.n+'" from this device? You will need the room name and passcode to join it again.'))return;if(S.tx)up();CH.splice(CH.indexOf(c),1);delete keys[id];delete peers[id];saveRooms();if(S.room===id){S.room="dispatch";S.rx=null;hello()}render()}
-$("chList").addEventListener("click",e=>{if(e.target.closest("[data-new]")){openS(null);return}const b=e.target.closest("[data-room]");if(b)setRoom(b.dataset.room)});
 /* layout recalculation: no reload, state stays in S */
 let rt;const re=()=>{clearTimeout(rt);rt=setTimeout(env,60)};
 addEventListener("resize",re);addEventListener("orientationchange",re);
 matchMedia("(pointer:coarse)").addEventListener("change",env);
 
-const dlg=$("dlg"),map={oName:"name",oMode:"mode",oBeep:"beep",oHap:"hap",oWake:"wake",oDsp:"dsp",oVol:"vol",qVol:"vol",oTheme:"theme",oLow:"low"};
+const dlg=$("dlg"),map={oName:"name",oMode:"mode",oBeep:"beep",oHap:"hap",oWake:"wake",oDsp:"dsp",oVol:"vol",oTheme:"theme",oLow:"low"};
 function theme(){const r=document.documentElement;D.theme==="auto"?r.removeAttribute("data-theme"):r.dataset.theme=D.theme}
 async function wake(){try{if(D.wake&&"wakeLock" in navigator&&!wl){wl=await navigator.wakeLock.request("screen");wl.onrelease=()=>{wl=null}}else if(!D.wake&&wl){await wl.release();wl=null}}catch(e){}}
 function sync(){for(const[id,k]of Object.entries(map)){const el=$(id);if(el.type==="checkbox")el.checked=!!D[k];else el.value=D[k]}}
@@ -413,10 +484,46 @@ $("aMsg").textContent=FB?"Connecting to Firebase…":"Local mode: Firebase did n
 if(FB){CH.filter(c=>!c.sec).forEach(c=>FB.watch(c.id));const st=()=>{const q=FB.state();$("aMsg").textContent=q==="online"?"Connected to the Relay server.":q==="auth"?"Firebase sign-in failed ("+FB.err()+"). Turn on Anonymous sign-in in Firebase Authentication.":"Connecting to the Relay server… the free server can take up to a minute to wake up."};FB.onstate=()=>{st();updateNet()};st();FB.onkick=r=>{if(S.room===r){S.room="dispatch";S.rx=null;render();hello()}}}
 $("aGo").onclick=async()=>{if(!FB)return;try{$("aMsg").textContent="Signing in…";const ok=await FB.login($("aMail").value.trim(),$("aPass").value);$("aPass").value="";$("aMsg").textContent=ok?"Admin access confirmed.":"Signed in, but this account is not in the admins list.";$("aClr").hidden=!ok}catch(e){$("aMsg").textContent="Sign in failed ("+(e.code||"error")+")."}};
 $("aClr").onclick=async()=>{if(FB&&confirm("Move everyone else out of this channel?")){try{await FB.clear(S.room);$("aMsg").textContent="Everyone else was moved out."}catch(e){$("aMsg").textContent="Not allowed for this account."}}};
+/* rotary wheels: drag around the knob, tap the channel knob to step, mouse wheel and arrow keys also work */
+const tick=()=>{buzz(6);beep(2400,.012)};
+function attach(el,cfg){
+  let st=null;
+  el.addEventListener("pointerdown",e=>{e.preventDefault();try{el.setPointerCapture(e.pointerId)}catch(x){}try{el.focus({preventScroll:true})}catch(x){}
+    const r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+    st={cx,cy,R:r.width/2,a:Math.atan2(e.clientY-cy,e.clientX-cx),x:e.clientX,y:e.clientY,px:e.clientX,py:e.clientY,t:Date.now(),f:cfg.get()};dragN++;el.classList.add("drag")});
+  el.addEventListener("pointermove",e=>{if(!st)return;
+    const dx=e.clientX-st.cx,dy=e.clientY-st.cy;let d;
+    if(Math.hypot(dx,dy)>st.R*.3){const a=Math.atan2(dy,dx);d=a-st.a;if(d>Math.PI)d-=2*Math.PI;if(d<-Math.PI)d+=2*Math.PI;st.a=a}
+    else{d=((e.clientX-st.px)-(e.clientY-st.py))*.012;st.a=Math.atan2(dy,dx)}
+    st.px=e.clientX;st.py=e.clientY;
+    st.f=Math.max(0,Math.min(1,st.f+d*57.2958/270));cfg.move(st.f)});
+  const end=e=>{if(!st)return;const s=st;st=null;dragN=Math.max(0,dragN-1);el.classList.remove("drag");
+    const tap=Math.hypot(e.clientX-s.x,e.clientY-s.y)<8&&Date.now()-s.t<350;cfg.end(s.f,tap);dialSync()};
+  el.addEventListener("pointerup",end);el.addEventListener("pointercancel",end);
+  el.addEventListener("wheel",e=>{e.preventDefault();cfg.step(e.deltaY<0?1:-1)},{passive:false});
+  el.addEventListener("keydown",e=>{const k=e.key;if(k==="ArrowUp"||k==="ArrowRight"){e.preventDefault();cfg.step(1)}else if(k==="ArrowDown"||k==="ArrowLeft"){e.preventDefault();cfg.step(-1)}});
+}
+attach($("dCh"),{
+  get:()=>{const n=CH.length,i=Math.max(0,CH.findIndex(c=>c.id===S.room));return n>1?i/(n-1):0},
+  move:f=>{const n=CH.length,i=Math.round(f*(n-1));setDial($("dCh"),f);
+    if(i!==dialIdx){dialIdx=i;tick();$("room").textContent=(CH[i].sec?"🔒 ":"")+CH[i].n;$("chVal").textContent=pad2(i+1);lcd()}},
+  end:(f,tap)=>{const n=CH.length,cur=Math.max(0,CH.findIndex(c=>c.id===S.room));const i=tap?(cur+1)%n:Math.round(f*(n-1));dialIdx=-1;
+    if(CH[i]&&CH[i].id!==S.room){tick();setRoom(CH[i].id)}else render()},
+  step:d=>{const n=CH.length,cur=Math.max(0,CH.findIndex(c=>c.id===S.room));const i=(cur+d+n)%n;tick();setRoom(CH[i].id);dialSync()}
+});
+attach($("dVol"),{
+  get:()=>D.vol,
+  move:f=>{D.vol=Math.round(f*100)/100;setDial($("dVol"),f);$("volVal").textContent=Math.round(D.vol*100);if(R&&R.a)R.a.volume=D.vol;buildTicks()},
+  end:()=>{save();sync();beep(880,.05)},
+  step:d=>{D.vol=Math.max(0,Math.min(1,Math.round((D.vol+d*.05)*100)/100));save();sync();dialSync()}
+});
+$("volTicks").innerHTML=Array.from({length:11},(_,k)=>`<i style="--t:${-135+k*27}deg"></i>`).join("");
 $("kMode").onclick=()=>{if(S.tx)up();D.mode=D.mode==="latch"?"hold":"latch";save();sync();hint();render()};
 $("kBeep").onclick=()=>{D.beep=!D.beep;save();sync();render()};
 $("kPeople").onclick=()=>{render();$("pdlg").showModal()};$("pClose").onclick=()=>$("pdlg").close();
-$("qVol").addEventListener("input",()=>{if(R&&R.a)R.a.volume=D.vol});
+$("kRoom").onclick=()=>openS(null);
+$("leave").addEventListener("click",()=>setTimeout(()=>{if(!CH.find(c=>c.id===S.room&&c.sec))$("pdlg").close()},0));
+setInterval(lcd,250);
 env();render();hello();
 </script>
 <div id="installBar" role="dialog" aria-label="Install app"><span id="installTxt">Install Relay on this device</span><button id="installGo">Install</button><button id="installX" aria-label="Close">✕</button></div>
