@@ -1,1 +1,276 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>Ludo Voice</title>
+<meta name="theme-color" content="#11181E">
+<style>
+:root{--bg:#11181E;--p:#1A242C;--ink:#E4EBEF;--mute:#8FA2AF;--acc:#F2B705;--line:#2B3944}
+*{box-sizing:border-box}
+.hide{display:none!important}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+#app{max-width:30rem;margin:0 auto;height:100dvh;display:flex;flex-direction:column;gap:.6rem;padding:calc(env(safe-area-inset-top,0px) + .8rem) .8rem calc(env(safe-area-inset-bottom,0px) + .8rem)}
+.v{flex:1;display:flex;flex-direction:column;gap:.7rem;min-height:0}
+.c{justify-content:center}
+h1{margin:0;text-align:center;font-size:1.8rem}
+p{margin:0;color:var(--mute)}
+input{font:inherit;font-size:1.05rem;padding:.8rem;border-radius:.7rem;border:1px solid var(--line);background:var(--p);color:var(--ink);width:100%}
+.b{font:inherit;font-weight:700;border:0;border-radius:.7rem;padding:.85rem;background:var(--acc);color:#2a2000;cursor:pointer}
+.b.g{background:var(--p);color:var(--ink);border:1px solid var(--line)}
+.b:disabled{opacity:.4}
+.row{display:flex;gap:.5rem}.row>*{flex:1}
+.err{color:#ff7b72;min-height:1.2rem;text-align:center}
+.code{font-size:2.6rem;letter-spacing:.4rem;text-align:center;font-weight:800;color:var(--acc)}
+ul{list-style:none;margin:0;padding:0;display:grid;gap:.4rem}
+li{background:var(--p);border:1px solid var(--line);border-radius:.6rem;padding:.6rem .8rem;display:flex;gap:.5rem;align-items:center}
+.dot{width:.9rem;height:.9rem;border-radius:50%;flex:none}
+li.on{border-color:var(--acc)}
+#stat{text-align:center;font-weight:700;min-height:1.4rem}
+#bd{align-self:center;border-radius:.6rem;touch-action:manipulation}
+#vc{display:flex;gap:.5rem;align-items:center}
+#ptt{flex:1;padding:1rem;font-size:1.05rem;touch-action:none;user-select:none;-webkit-user-select:none}
+#ptt.on{background:#D6372B;color:#fff}
+#spk{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 4.6rem);text-align:center;color:var(--acc);pointer-events:none}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + .6rem);transform:translateX(-50%);background:#000c;padding:.6rem 1rem;border-radius:.6rem;max-width:90%}
+</style>
+</head>
+<body>
+<div id="app">
+  <section id="v-login" class="v c">
+    <h1>🎲 Ludo Voice</h1>
+    <p style="text-align:center">শুধু একটা ইউজারনেম দিন, বাজি নেই, কথা বলে খেলুন (২-৪ জন)</p>
+    <input id="name" maxlength="14" placeholder="আপনার ইউজারনেম" autocomplete="off">
+    <button id="go" class="b">খেলতে ঢুকুন</button>
+    <div id="lerr" class="err"></div>
+  </section>
 
+  <section id="v-lobby" class="v c hide">
+    <p style="text-align:center">হ্যালো, <b id="me" style="color:var(--ink)"></b></p>
+    <button id="mk" class="b">নতুন রুম খুলুন</button>
+    <input id="code" maxlength="5" inputmode="numeric" placeholder="৫ সংখ্যার রুম কোড">
+    <button id="jn" class="b g">রুমে যোগ দিন</button>
+  </section>
+
+  <section id="v-room" class="v hide">
+    <p style="text-align:center">রুম কোড (বন্ধুকে দিন)</p>
+    <div id="rc" class="code"></div>
+    <ul id="pl"></ul>
+    <p id="rw" style="text-align:center"></p>
+    <div style="flex:1"></div>
+    <button id="st" class="b">খেলা শুরু করুন</button>
+    <button id="lv" class="b g">বের হয়ে যান</button>
+  </section>
+
+  <section id="v-game" class="v hide">
+    <div id="stat"></div>
+    <canvas id="bd"></canvas>
+    <ul id="strip" style="grid-template-columns:1fr 1fr"></ul>
+    <button id="dice" class="b" disabled>🎲 ছক্কা ফেলুন</button>
+    <button id="back" class="b g hide">রুমে ফিরুন</button>
+  </section>
+
+  <div id="vc" class="hide">
+    <button id="ptt" class="b">🎙 ধরে রেখে কথা বলুন</button>
+    <button id="mute" class="b g" title="অন্যদের কথা শোনা চালু/বন্ধ">🔊</button>
+  </div>
+  <div id="spk"></div>
+</div>
+<div id="toast" class="hide"></div>
+
+<script>
+
+"use strict";
+const $=id=>document.getElementById(id);
+const COL=["#e53935","#43a047","#fdd835","#1e88e5"],YO=[[0,0],[9,0],[9,9],[0,9]];
+const SAFE=[0,8,13,21,26,34,39,47];
+const PATH=[[1,6]];
+[[1,0,4],[1,-1,1],[0,-1,5],[1,0,2],[0,1,5],[1,1,1],[1,0,5],[0,1,2],[-1,0,5],[-1,1,1],[0,1,5],[-1,0,2],[0,-1,5],[-1,-1,1],[-1,0,5],[0,-1,2]]
+ .forEach(([dx,dy,n])=>{for(let k=0;k<n;k++){const p=PATH[PATH.length-1];PATH.push([p[0]+dx,p[1]+dy])}});
+const HOME=[[[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],[[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],[[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],[[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]]];
+let me="",R=null,G=null,view="login",muted=false,autoMv=null;
+
+function show(v){view=v;["login","lobby","room","game"].forEach(x=>$("v-"+x).classList.toggle("hide",x!==v));$("vc").classList.toggle("hide",v!=="room"&&v!=="game");if(v==="game")size()}
+function toast(t){const e=$("toast");e.textContent=t;e.classList.remove("hide");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.add("hide"),3500)}
+const send=o=>{if(isHost)hostData(null,o);else if(hostConn&&hostConn.open)hostConn.send(o)};
+const NAME=/^[\w\u0980-\u09FF ]{2,14}$/,SAFE_SET=new Set(SAFE);
+let peer=null,isHost=false,hostConn=null,players=[],g=null,busy=false,mic=null,calls={},auds={};
+/* No server: PeerJS cloud only introduces the phones to each other, then voice (WebRTC) and game data go directly.
+   The player who creates the room is the host and runs the Ludo rules for everybody. */
+const sendTo=(p,o)=>{if(p.conn){if(p.conn.open)p.conn.send(o)}else onMsg(JSON.parse(JSON.stringify(o)))};
+const cast=o=>players.forEach(p=>sendTo(p,o));
+
+/* ---- host: Ludo rules ---- */
+const abs=(s,r)=>(s*13+r)%52;
+const legal=(s,d)=>{const o=[];g.pc[s].forEach((r,i)=>{if(r===-1?d===6:r+d<=56)o.push(i)});return o};
+function applyMove(s,i,d){
+  const p=g.pc[s];let ex=d===6;
+  p[i]=p[i]===-1?0:p[i]+d;
+  if(p[i]===56)ex=true;
+  else if(p[i]<=50){const a=abs(s,p[i]);
+    if(!SAFE_SET.has(a))for(const t of g.seats)if(t!==s)g.pc[t].forEach((r,j)=>{if(r>=0&&r<=50&&abs(t,r)===a){g.pc[t][j]=-1;ex=true}})}
+  if(p.every(r=>r===56))g.winner=s;
+  return ex;
+}
+const roomInfo=()=>({t:"room",code:roomCode,players:players.map(p=>p.name),pids:players.map(p=>p.pid),started:!!g&&g.winner==null});
+let roomCode=null;
+const pushRoom=()=>cast(roomInfo());
+const gState=()=>({t:"g",seats:g.seats.map((s,k)=>({seat:s,name:g.names[k],gone:g.gone.has(s)})),pc:g.pc,turn:g.turn,dice:g.dice,rolled:g.rolled,winner:g.winner,legal:g.rolled?legal(g.turn,g.dice):[]});
+function push(){clearTimeout(g.t);cast(gState());if(g.winner==null)g.t=setTimeout(auto,25000)}
+function advance(ex){g.rolled=false;if(!ex){let k=g.seats.indexOf(g.turn);do{k=(k+1)%g.seats.length}while(g.gone.has(g.seats[k]));g.turn=g.seats[k]}push()}
+function doRoll(){g.dice=1+Math.floor(Math.random()*6);g.rolled=true;
+  if(!legal(g.turn,g.dice).length){clearTimeout(g.t);cast(gState());g.t=setTimeout(()=>advance(false),1300)}else push()}
+function doMove(i){const ex=applyMove(g.turn,i,g.dice);if(g.winner!=null)push();else advance(ex)}
+function auto(){if(!g||g.winner!=null)return;if(!g.rolled)doRoll();else doMove(legal(g.turn,g.dice)[0])}
+function startGame(){
+  const n=players.length,seats=n===2?[0,2]:[0,1,2,3].slice(0,n);
+  if(g)clearTimeout(g.t);
+  g={seats,names:players.map(p=>p.name),pc:{},turn:seats[0],dice:0,rolled:false,winner:null,gone:new Set(),t:null};
+  seats.forEach(s=>g.pc[s]=[-1,-1,-1,-1]);players.forEach((p,k)=>p.seat=seats[k]);
+  pushRoom();push();
+}
+function dropConn(conn){
+  const p=players.find(x=>x.conn===conn);if(!p)return;
+  players=players.filter(x=>x!==p);if(calls[p.pid]){try{calls[p.pid].close()}catch{}}
+  if(g&&g.winner==null){g.gone.add(p.seat);g.pc[p.seat]=[-1,-1,-1,-1];
+    const alive=g.seats.filter(s=>!g.gone.has(s));
+    if(alive.length<2){g.winner=alive[0];push()}else if(g.turn===p.seat)advance(false);else push()}
+  pushRoom();
+}
+function hostData(conn,m){
+  if(!m||typeof m!=="object")return;
+  if(m.t==="join"){
+    const n=typeof m.name==="string"?m.name.trim():"";
+    const bad=!NAME.test(n)?"নাম ঠিক নেই":players.some(p=>p.name.toLowerCase()===n.toLowerCase())?"এই নামে রুমে কেউ আছে, অন্য নাম দিন":players.length>=4?"রুম ভর্তি":(g&&g.winner==null)?"খেলা চলছে, পরে চেষ্টা করুন":"";
+    if(bad){conn.send({t:"err",msg:bad,fatal:1});setTimeout(()=>conn.close(),400);return}
+    players.push({name:n,pid:conn.peer,conn});pushRoom();return;
+  }
+  const p=players.find(x=>x.conn===conn);if(!p)return;
+  if(m.t==="start"&&p===players[0]){if(players.length<2)return sendTo(p,{t:"err",msg:"কমপক্ষে ২ জন লাগবে"});if(g&&g.winner==null)return;startGame()}
+  else if(m.t==="roll"&&g&&g.winner==null&&g.turn===p.seat&&!g.rolled)doRoll();
+  else if(m.t==="move"&&g&&g.winner==null&&g.turn===p.seat&&g.rolled&&legal(g.turn,g.dice).includes(m.i))doMove(m.i);
+}
+
+/* ---- every player: voice calls + messages from host ---- */
+function attach(call){
+  calls[call.peer]=call;
+  call.on("stream",s=>{const a=auds[call.peer]||(auds[call.peer]=new Audio());a.srcObject=s;a.muted=muted;a.play().catch(()=>{})});
+  call.on("close",()=>{delete calls[call.peer]});
+}
+function ensureCalls(m){m.pids.forEach(pid=>{if(pid!==peer.id&&!calls[pid]&&peer.id<pid)attach(peer.call(pid,mic))})}
+function onMsg(m){
+  if(!m)return;
+  if(m.t==="room"){R=m;if(peer)ensureCalls(m);if(view==="lobby"||view==="room"){show("room");renderRoom()}}
+  else if(m.t==="g"){G=m;show("game");render();maybeAuto()}
+  else if(m.t==="err"){toast(m.msg);if(m.fatal)leaveAll()}
+}
+async function getMic(){
+  if(mic)return;
+  try{mic=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}})}
+  catch{toast("মাইক্রোফোনের অনুমতি নেই, শুধু শুনতে পারবেন");mic=new(window.AudioContext||window.webkitAudioContext)().createMediaStreamDestination().stream}
+  mic.getAudioTracks().forEach(t=>t.enabled=false);
+}
+function leaveAll(){
+  Object.values(calls).forEach(c=>{try{c.close()}catch{}});calls={};Object.values(auds).forEach(a=>{a.srcObject=null});auds={};
+  const p=peer;peer=null;try{p&&p.destroy()}catch{}
+  hostConn=null;isHost=false;players=[];g=R=G=null;roomCode=null;busy=false;clearTimeout(autoMv);show("lobby");
+}
+async function create(n=0){
+  if(busy)return;busy=true;await getMic();
+  const code=String(10000+Math.floor(Math.random()*90000)),pr=new Peer("ludo-"+code);
+  pr.on("open",id=>{peer=pr;isHost=true;roomCode=code;players=[{name:me,pid:id,conn:null}];g=null;busy=false;pushRoom()});
+  pr.on("connection",conn=>{conn.on("data",m=>hostData(conn,m));conn.on("close",()=>{if(peer===pr)dropConn(conn)})});
+  pr.on("call",c=>{c.answer(mic);attach(c)});
+  pr.on("error",e=>{if(e.type==="unavailable-id"&&n<5){busy=false;create(n+1)}else if(peer===pr||!peer){toast("সংযোগ সমস্যা ("+e.type+")");leaveAll()}});
+}
+async function join(){
+  const code=$("code").value.replace(/\D/g,"");
+  if(code.length!==5)return toast("৫ সংখ্যার রুম কোড দিন");
+  if(busy)return;busy=true;await getMic();
+  const pr=peer=new Peer();
+  pr.on("open",()=>{const c=hostConn=pr.connect("ludo-"+code,{reliable:true});
+    c.on("open",()=>c.send({t:"join",name:me}));c.on("data",onMsg);
+    c.on("close",()=>{if(peer===pr){toast("রুম বন্ধ হয়ে গেছে");leaveAll()}})});
+  pr.on("call",c=>{c.answer(mic);attach(c)});
+  pr.on("error",e=>{if(peer!==pr)return;toast(e.type==="peer-unavailable"?"রুম পাওয়া যায়নি":"সংযোগ সমস্যা ("+e.type+")");leaveAll()});
+}
+
+/* ---- screens ---- */
+$("go").onclick=()=>{const n=$("name").value.trim().replace(/\s+/g," ");if(!NAME.test(n))return($("lerr").textContent="নাম ২-১৪ অক্ষরের হতে হবে");me=n;$("me").textContent=n;try{localStorage.setItem("lv-name",n)}catch{}show("lobby")};
+$("name").onkeydown=e=>{if(e.key==="Enter")$("go").click()};
+try{$("name").value=localStorage.getItem("lv-name")||""}catch{}
+$("mk").onclick=()=>create();
+$("jn").onclick=join;
+$("lv").onclick=leaveAll;
+$("st").onclick=()=>send({t:"start"});
+$("back").onclick=()=>{G=null;show("room");renderRoom()};
+$("dice").onclick=()=>send({t:"roll"});
+function renderRoom(){
+  $("rc").textContent=R.code;$("pl").innerHTML="";
+  R.players.forEach((n,k)=>{const li=document.createElement("li");li.append(n+(k===0?" (হোস্ট)":""));$("pl").append(li)});
+  const host=R.players[0]===me;
+  $("st").classList.toggle("hide",!host);$("st").disabled=R.players.length<2;
+  $("rw").textContent=host?(R.players.length<2?"কমপক্ষে আরেকজনের জন্য অপেক্ষা করুন...":"সবাই এলে শুরু করুন"):"হোস্ট খেলা শুরু করবেন...";
+}
+
+/* ---------- board ---------- */
+const mySeat=()=>{const p=G&&G.seats.find(s=>s.name===me);return p?p.seat:-1};
+const myMovable=()=>G&&G.winner==null&&G.turn===mySeat()&&G.rolled?G.legal:[];
+function pos(seat,i,rel){
+  if(rel===-1){const[ox,oy]=YO[seat];return[ox+1+(i%2)*2,oy+1+(i>>1)*2]}
+  return rel<=50?PATH[(seat*13+rel)%52]:HOME[seat][rel-51];
+}
+function size(){const c=$("bd"),w=Math.min(innerWidth-20,innerHeight-300,520),d=devicePixelRatio||1;const px=Math.max(240,w);c.style.width=c.style.height=px+"px";c.width=c.height=Math.round(px*d);if(G)draw()}
+addEventListener("resize",size);
+function draw(){
+  const c=$("bd"),x=c.getContext("2d"),s=c.width/15;
+  const cell=(a,b,f)=>{x.fillStyle=f;x.fillRect(a*s,b*s,s,s);x.strokeStyle="#0003";x.lineWidth=1;x.strokeRect(a*s,b*s,s,s)};
+  x.fillStyle="#f5f1e6";x.fillRect(0,0,c.width,c.height);
+  YO.forEach(([ox,oy],k)=>{x.fillStyle=COL[k];x.fillRect(ox*s,oy*s,6*s,6*s);x.fillStyle="#fff";x.fillRect((ox+1)*s,(oy+1)*s,4*s,4*s)});
+  PATH.forEach(([a,b],i)=>cell(a,b,i%13===0?COL[i/13]:"#fff"));
+  HOME.forEach((h,k)=>h.forEach(([a,b])=>cell(a,b,COL[k])));
+  x.fillStyle="#0008";x.font=(s*.6)+"px sans-serif";x.textAlign="center";x.textBaseline="middle";
+  SAFE.forEach(i=>{if(i%13)x.fillText("★",(PATH[i][0]+.5)*s,(PATH[i][1]+.55)*s)});
+  const t=(pts,k)=>{x.fillStyle=COL[k];x.beginPath();x.moveTo(pts[0]*s,pts[1]*s);x.lineTo(pts[2]*s,pts[3]*s);x.lineTo(7.5*s,7.5*s);x.closePath();x.fill()};
+  t([6,6,6,9],0);t([6,6,9,6],1);t([9,6,9,9],2);t([6,9,9,9],3);
+  if(!G)return;
+  const seen={},mv=myMovable(),ms=mySeat();
+  G.seats.forEach(({seat,gone})=>{if(gone)return;G.pc[seat].forEach((rel,i)=>{
+    const[a,b]=pos(seat,i,rel),k=a+","+b,n=seen[k]=(seen[k]||0)+1,o=(n-1)*.15;
+    x.beginPath();x.arc((a+.5+o)*s,(b+.5-o)*s,s*.34,0,7);x.fillStyle=COL[seat];x.fill();
+    const can=seat===ms&&mv.includes(i);
+    x.lineWidth=can?s*.12:s*.06;x.strokeStyle=can?"#000":"#fff";x.stroke();
+    if(can){x.beginPath();x.arc((a+.5+o)*s,(b+.5-o)*s,s*.12,0,7);x.fillStyle="#000";x.fill()}})});
+}
+function render(){
+  const ms=mySeat(),turnP=G.seats.find(p=>p.seat===G.turn),mine=G.turn===ms;
+  $("stat").textContent=G.winner!=null?"🏆 "+(G.seats.find(p=>p.seat===G.winner)||{}).name+" জিতেছে!":
+    mine?(G.rolled?(G.legal.length?"ছক্কা "+G.dice+": একটি গুটি বেছে নিন":"ছক্কা "+G.dice+": কোনো চাল নেই"):"আপনার পালা, ছক্কা ফেলুন"):
+    turnP.name+" এর পালা"+(G.rolled?" (ছক্কা "+G.dice+")":"");
+  $("dice").disabled=!(mine&&!G.rolled&&G.winner==null);
+  $("dice").textContent=G.rolled?"🎲 "+G.dice:"🎲 ছক্কা ফেলুন";
+  $("back").classList.toggle("hide",G.winner==null);$("dice").classList.toggle("hide",G.winner!=null);
+  $("strip").innerHTML="";
+  G.seats.forEach(p=>{const li=document.createElement("li"),d=document.createElement("span");d.className="dot";d.style.background=COL[p.seat];li.append(d,p.name+(p.gone?" (বেরিয়ে গেছে)":""));if(p.seat===G.turn&&G.winner==null)li.className="on";$("strip").append(li)});
+  draw();
+}
+function maybeAuto(){clearTimeout(autoMv);const mv=myMovable();if(mv.length===1){const i=mv[0];autoMv=setTimeout(()=>send({t:"move",i}),700)}}
+$("bd").onpointerdown=e=>{
+  const mv=myMovable();if(!mv.length)return;
+  const r=$("bd").getBoundingClientRect(),s=r.width/15,px=(e.clientX-r.left)/s,py=(e.clientY-r.top)/s,ms=mySeat();
+  let best=-1,bd=.7;
+  for(const i of mv){const[a,b]=pos(ms,i,G.pc[ms][i]),d=Math.hypot(a+.5-px,b+.5-py);if(d<bd){bd=d;best=i}}
+  if(best>=0){clearTimeout(autoMv);send({t:"move",i:best})}
+};
+
+/* ---------- voice: hold the button to talk (WebRTC, direct between players) ---------- */
+function talkStart(e){e.preventDefault();if(!mic)return;mic.getAudioTracks().forEach(t=>t.enabled=true);Object.values(auds).forEach(a=>a.play().catch(()=>{}));$("ptt").classList.add("on")}
+function talkStop(){if(mic)mic.getAudioTracks().forEach(t=>t.enabled=false);$("ptt").classList.remove("on")}
+$("ptt").addEventListener("pointerdown",talkStart);
+addEventListener("pointerup",talkStop);addEventListener("pointercancel",talkStop);
+$("ptt").addEventListener("contextmenu",e=>e.preventDefault());
+$("mute").onclick=()=>{muted=!muted;$("mute").textContent=muted?"🔇":"🔊";Object.values(auds).forEach(a=>a.muted=muted)};
+
+</script>
+</body>
+</html>
