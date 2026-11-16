@@ -1,5 +1,5 @@
 "use strict";
-const CACHE = "relay-v3";
+const CACHE = "relay-v4";
 const FILES = ["./", "./index.html", "./manifest.json", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png", "./icons/apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {

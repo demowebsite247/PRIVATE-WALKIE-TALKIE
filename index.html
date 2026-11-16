@@ -121,7 +121,7 @@ body{grid-template-columns:17rem minmax(0,1fr) 19rem;grid-template-rows:auto min
 <header class="top"><span class="brand">Relay</span><span class="now" id="now"></span><span class="chip" id="env"></span><button class="gear" id="gear" aria-label="Settings"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></button></header>
 <section class="panel" id="channels" aria-label="Channels"><h2>Channels</h2><ul id="chList"></ul><button class="newroom" id="newRoom">+ Secure room</button><a class="credit" href="https://mrtech.nptrunamentbd.top/" target="_blank" rel="noopener noreferrer">Developed by <b>MR TECH</b><br>© 2026 Mijanur Rahman</a></section>
 <main id="talk">
-  <div class="info"><h1 id="room"></h1><p id="status"></p></div>
+  <div class="info"><h1 id="room"></h1><p id="status"></p><p class="note netMsg" hidden></p></div>
   <div class="wrap">
     <button class="ptt" id="ptt" aria-label="Push to talk">Hold to talk</button>
     <div class="meter" id="meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
@@ -129,7 +129,7 @@ body{grid-template-columns:17rem minmax(0,1fr) 19rem;grid-template-rows:auto min
   </div>
   <div id="log" class="panel" style="padding:.6rem .9rem;border:1px solid var(--line);border-radius:.7rem"><h2>Recent</h2><ul id="logList"></ul></div>
 </main>
-<section class="panel" id="people" aria-label="People"><h2 id="pTitle">People</h2><ul id="pList"></ul><button class="newroom" id="leave" hidden>Delete secure room</button></section>
+<section class="panel" id="people" aria-label="People"><h2 id="pTitle">People</h2><p class="note netMsg" hidden></p><ul id="pList"></ul><button class="newroom" id="leave" hidden>Delete secure room</button></section>
 <nav class="bar" aria-label="Sections">
   <button data-view="channels"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Channels</button>
   <button data-view="talk" aria-current="true"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Talk</button>
@@ -169,7 +169,7 @@ body{grid-template-columns:17rem minmax(0,1fr) 19rem;grid-template-rows:auto min
 const WS_URL="wss://pwt-bakend.onrender.com/ws";
 firebase.initializeApp({apiKey:"AIzaSyD840048Sta1mu4SmGkzBL-CikkyeW_igw",authDomain:"private-walkie-talkie.firebaseapp.com",projectId:"private-walkie-talkie",appId:"1:830840396667:web:f4d103f947021e22943bde"});
 const auth=firebase.auth(),id=Math.random().toString(36).slice(2,8),H=[],watching=new Set();
-let uid=null,err="",ws=null,up=false,cur=null,retry=0,onReady=null;
+let uid=null,err="",ws=null,up=false,cur=null,retry=0,onReady=null,code=0;
 const b64=u=>{u=new Uint8Array(u);let s="";for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(s)};
 const ub=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 const emit=d=>H.forEach(f=>f({data:d}));
@@ -181,13 +181,13 @@ async function connect(){await ready;if(!uid)return;
   const sock=ws=new WebSocket(WS_URL);
   sock.onopen=()=>tx({t:"auth",token:tok,id});
   sock.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(x){return}
-    if(m.t==="ready"){up=true;retry=0;tx({t:"watch",rooms:[...watching]});if(cur)tx(cur);note();if(onReady)onReady(!!m.admin)}
+    if(m.t==="ready"){up=true;retry=0;code=0;tx({t:"watch",rooms:[...watching]});if(cur)tx(cur);note();if(onReady)onReady(!!m.admin)}
     else if(m.t==="hi")emit({type:"hi",from:m.from,room:m.room,name:m.name,sec:m.iv?1:0,iv:m.iv?ub(m.iv):undefined,ct:m.ct?ub(m.ct).buffer:undefined});
     else if(m.t==="bye")emit({type:"bye",from:m.from});
     else if(m.t==="v")emit({type:"v",from:m.from,room:m.room,sid:m.sid,seq:m.seq,end:!!m.end,mime:m.mime||"",buf:m.buf?ub(m.buf).buffer:undefined,iv:m.iv?ub(m.iv):undefined,ct:m.ct?ub(m.ct).buffer:undefined,sec:m.sec});
     else if(m.t==="kicked"&&fb.onkick)fb.onkick(m.room)};
-  sock.onclose=()=>{if(sock!==ws)return;up=false;note();setTimeout(connect,Math.min(15000,1000*2**retry++))}}
-const fb=window.fbBus={id,ready,uid:()=>uid,err:()=>err,state:()=>err?"auth":up?"online":"connecting",
+  sock.onclose=e=>{if(sock!==ws)return;up=false;code=(e&&e.code)||0;note();setTimeout(connect,Math.min(15000,1000*2**retry++))}}
+const fb=window.fbBus={id,ready,uid:()=>uid,err:()=>err,code:()=>code,state:()=>err?"auth":up?"online":"connecting",
   addEventListener(t,f){if(t==="message")H.push(f)},
   watch:r=>{watching.add(r);if(up)tx({t:"watch",rooms:[...watching]})},
   postMessage(m){
@@ -249,10 +249,22 @@ const $=id=>document.getElementById(id);
 const bars=[...document.querySelectorAll("#meter i")];
 let mic=null,ctx=null,an=null,raf=0,log=[];
 
+function netText(){
+  const F=window.fbBus;
+  if(!F)return"Not connected: Firebase did not load, so voice cannot reach other devices. Check the internet and turn off any VPN or ad blocker.";
+  const q=F.state();if(q==="online")return"";
+  if(q==="auth")return"Not connected: Firebase sign-in failed ("+F.err()+"). Turn on Anonymous sign-in in Firebase Authentication.";
+  const c=F.code();
+  if(c===4003)return"Not connected: the server rejected the sign-in. The service account on Render must belong to the private-walkie-talkie Firebase project.";
+  if(c===4004)return"Not connected: this device ID is already in use. Reload the page.";
+  if(c===4001)return"Not connected: the server did not get the sign-in in time. Retrying.";
+  if(c)return"Not connected: cannot reach the server. It may be waking up (wait about a minute), or ALLOWED_ORIGINS on Render does not match this page's address, which is "+location.origin;
+  return"Connecting to the server… the free server can take up to a minute to wake up."}
+function updateNet(){const t=netText();document.querySelectorAll(".netMsg").forEach(e=>{e.textContent=t;e.hidden=!t})}
 function members(){const c=CH.find(x=>x.id===S.room);return[[D.name+" (you)",c.id,1],...Object.values(peers[c.id]||{}).map(p=>[p.n,c.id,1])]}
 function render(){
   const ch=CH.find(c=>c.id===S.room),m=members(),on=m.filter(p=>p[2]).length;
-  $("room").textContent=(ch.sec?"🔒 ":"")+ch.n;$("leave").hidden=!ch.sec;$("now").textContent=ch.n+" · "+on+" online";
+  $("room").textContent=(ch.sec?"🔒 ":"")+ch.n;$("leave").hidden=!ch.sec;$("now").textContent=ch.n+" · "+on+" online"+((!window.fbBus||fbBus.state()!=="online")?" · not connected":"");updateNet();
   $("pTitle").textContent="In "+ch.n;
   $("chList").innerHTML=CH.map((c,i)=>{const k=c.sec?(c.id in keys?"🔒 open":"🔒 locked"):(Object.keys(peers[c.id]||{}).length+(c.id===S.room?1:0))+" online";
     return `<li class="${c.sec?"sr":""}"><button class="ch" data-room="${c.id}" aria-current="${c.id===S.room}"><span>${esc(c.n)}</span><small>${k} · ${i+1}</small></button>${c.sec?`<button class="del" data-del="${c.id}" aria-label="Delete secure room ${esc(c.n)}" title="Delete room">🗑</button>`:""}</li>`}).join("");
@@ -367,7 +379,7 @@ setInterval(()=>{hello();let ch=false;const t=Date.now();for(const r in peers)fo
 addEventListener("pagehide",()=>{if(bc)bc.postMessage({type:"bye",from:me})});
 const FB=window.fbBus;
 $("aMsg").textContent=FB?"Connecting to Firebase…":"Local mode: Firebase did not load, so voice stays inside this browser.";
-if(FB){CH.filter(c=>!c.sec).forEach(c=>FB.watch(c.id));const st=()=>{const q=FB.state();$("aMsg").textContent=q==="online"?"Connected to the Relay server.":q==="auth"?"Firebase sign-in failed ("+FB.err()+"). Turn on Anonymous sign-in in Firebase Authentication.":"Connecting to the Relay server… the free server can take up to a minute to wake up."};FB.onstate=st;st();FB.onkick=r=>{if(S.room===r){S.room="dispatch";S.rx=null;render();hello()}}}
+if(FB){CH.filter(c=>!c.sec).forEach(c=>FB.watch(c.id));const st=()=>{const q=FB.state();$("aMsg").textContent=q==="online"?"Connected to the Relay server.":q==="auth"?"Firebase sign-in failed ("+FB.err()+"). Turn on Anonymous sign-in in Firebase Authentication.":"Connecting to the Relay server… the free server can take up to a minute to wake up."};FB.onstate=()=>{st();updateNet()};st();FB.onkick=r=>{if(S.room===r){S.room="dispatch";S.rx=null;render();hello()}}}
 $("aGo").onclick=async()=>{if(!FB)return;try{$("aMsg").textContent="Signing in…";const ok=await FB.login($("aMail").value.trim(),$("aPass").value);$("aPass").value="";$("aMsg").textContent=ok?"Admin access confirmed.":"Signed in, but this account is not in the admins list.";$("aClr").hidden=!ok}catch(e){$("aMsg").textContent="Sign in failed ("+(e.code||"error")+")."}};
 $("aClr").onclick=async()=>{if(FB&&confirm("Move everyone else out of this channel?")){try{await FB.clear(S.room);$("aMsg").textContent="Everyone else was moved out."}catch(e){$("aMsg").textContent="Not allowed for this account."}}};
 env();render();hello();
