@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Relay – Push-to-talk</title>
 <meta name="author" content="MR TECH (Mijanur Rahman)">
 <link rel="manifest" href="manifest.json">
@@ -14,66 +14,95 @@
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
-#chList li.sr{display:flex;gap:.4rem;align-items:stretch}
-#chList li.sr .ch{flex:1;min-width:0}
-.del{flex:none;width:3rem;min-height:3rem;border:1px solid var(--line);border-radius:.7rem;background:transparent;font-size:1.05rem}
-.del:hover,.del:focus-visible{border-color:var(--tx);background:var(--tx);color:#fff}
-#installBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(5.2rem + env(safe-area-inset-bottom,0px));z-index:50;display:none;align-items:center;gap:.6rem;background:var(--sel);color:var(--selInk);border-radius:2rem;padding:.45rem .55rem .45rem 1rem;box-shadow:0 4px 18px rgba(0,0,0,.35);max-width:92vw}
-#installBar.show{display:flex}
-#installBar button{border:0;border-radius:2rem;padding:.4rem .9rem;font-weight:700}
-#installGo{background:var(--ptt);color:var(--pttInk)}
-#installX{background:transparent;color:inherit;opacity:.7}
-</style>
-
-
-
-<style>
-:root{--bg:#E4E9EC;--panel:#F6F8F9;--ink:#1B2A35;--mute:#5C6E7A;--line:#CBD4DA;--ptt:#F2B705;--pttInk:#2A2000;--tx:#D6372B;--ok:#2F8F5B;--sel:#1B2A35;--selInk:#F6F8F9;
-box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
-font-size:clamp(14px,.55vw + 10.5px,26px)}
+:root{--bg:#E4E9EC;--panel:#F6F8F9;--ink:#1B2A35;--mute:#5C6E7A;--line:#CBD4DA;--ptt:#F2B705;--pttInk:#2A2000;--tx:#D6372B;--ok:#2F8F5B;--sel:#1B2A35;--selInk:#F6F8F9;font-size:clamp(14px,.55vw + 10.5px,24px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11181E;--panel:#1A242C;--ink:#E4EBEF;--mute:#8FA2AF;--line:#2B3944;--sel:#E4EBEF;--selInk:#11181E}}
 :root[data-theme="dark"]{--bg:#11181E;--panel:#1A242C;--ink:#E4EBEF;--mute:#8FA2AF;--line:#2B3944;--sel:#E4EBEF;--selInk:#11181E}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *,*::before,*::after{box-sizing:border-box}
-html,body{height:100%;margin:0}
-body{background:var(--bg);color:var(--ink);font-family:"Arial Narrow","Roboto Condensed",system-ui,sans-serif;display:grid;grid-template-rows:auto minmax(0,1fr) auto;grid-template-columns:minmax(0,1fr);overflow:hidden;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;background:#0b1015}
+body{color:var(--ink);font-family:"Arial Narrow","Roboto Condensed",system-ui,sans-serif;overflow:hidden;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+input,select,dialog{-webkit-user-select:text;user-select:text}
 button{font:inherit;color:inherit;cursor:pointer}
-button:focus-visible{outline:.15rem solid var(--ink);outline-offset:.15rem}
-.top{display:flex;align-items:center;gap:.8rem;padding:.55rem .9rem;border-bottom:1px solid var(--line);background:var(--panel);min-width:0}
-.brand{font-weight:700;font-size:1.25rem;letter-spacing:.02em}
-.now{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--mute)}
-.chip{font-size:.8rem;color:var(--mute);border:1px solid var(--line);border-radius:99px;padding:.15rem .6rem;white-space:nowrap}
-.panel{background:var(--panel);overflow:auto;min-height:0;padding:.9rem}
-.panel h2{margin:0 0 .6rem;font-size:1rem;font-weight:600;color:var(--mute)}
+button:focus-visible{outline:.15rem solid #F2B705;outline-offset:.1rem}
+[hidden]{display:none!important}
 ul{list-style:none;margin:0;padding:0;display:grid;gap:.4rem}
-.ch{width:100%;display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.8rem .9rem;min-height:3rem;border:1px solid var(--line);border-radius:.7rem;background:transparent;text-align:left}
-.ch[aria-current="true"]{background:var(--sel);color:var(--selInk);border-color:var(--sel)}
-.ch small{opacity:.7}
-.who{display:flex;align-items:center;gap:.7rem;padding:.5rem .2rem;border-bottom:1px solid var(--line)}
-.dot{width:.7rem;height:.7rem;border-radius:50%;background:var(--line);flex:none}
-.on .dot{background:var(--ok)}
-.who.talking .dot{background:var(--tx);animation:blink .8s infinite}
-.who span:last-child{margin-left:auto;color:var(--mute);font-size:.85rem}
-#talk{min-height:0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;gap:1rem;padding:1rem;overflow:auto;text-align:center}
-.info h1{margin:0;font-size:clamp(1.6rem,4vw + .6rem,3rem);line-height:1.05}
-#status{margin:.4rem 0 0;color:var(--mute);min-height:1.4em}
-.wrap{display:grid;justify-items:center;gap:1rem}
-.ptt{--s:clamp(8.5rem,min(56vw,40dvh),24rem);width:var(--s);height:var(--s);border-radius:50%;border:0;background:var(--ptt);color:var(--pttInk);font-weight:700;font-size:calc(var(--s)*.14);touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;box-shadow:0 0 0 calc(var(--s)*.05) var(--bg),0 0 0 calc(var(--s)*.065) var(--ptt);transition:transform .08s,background .15s}
-.ptt.tx{background:var(--tx);color:#fff;transform:scale(.96);box-shadow:0 0 0 calc(var(--s)*.05) var(--bg),0 0 0 calc(var(--s)*.065) var(--tx)}
-.ptt.busy{background:var(--line);color:var(--mute)}
-.meter{display:flex;gap:.25rem;align-items:flex-end;height:1.6rem}
-.meter i{width:.4rem;height:20%;background:var(--line);border-radius:2px;transition:height .08s}
-.tx-on .meter i{background:var(--tx)}
-.hint{margin:0;color:var(--mute);font-size:.85rem}
-#log{display:none;width:min(100%,32rem);text-align:left}
-.bar{display:flex;border-top:1px solid var(--line);background:var(--panel)}
-.bar button{flex:1;min-height:3.6rem;border:0;background:none;display:grid;place-items:center;gap:.1rem;padding:.4rem;color:var(--mute);font-size:.85rem}
-.bar button[aria-current="true"]{color:var(--ink);font-weight:700}
-.bar svg{width:1.5rem;height:1.5rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.gear{width:2.4rem;height:2.4rem;flex:none;border:1px solid var(--line);border-radius:50%;background:none;display:grid;place-items:center}
-dialog{border:1px solid var(--line);border-radius:1rem;background:var(--panel);color:var(--ink);width:min(92vw,26rem);max-height:90dvh;padding:1rem 1.2rem;font:inherit}
+
+/* ===== The whole app is one walkie-talkie that fills the screen ===== */
+.radio{height:100vh;height:100dvh;width:100%;max-width:30rem;margin:0 auto;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+.ant{flex:none;width:1.1rem;height:1.2rem;margin-left:16%;border-radius:.6rem .6rem 0 0;background:linear-gradient(90deg,#0d1216,#37444f 45%,#0d1216);box-shadow:0 0 0 1px #05080a}
+.shell{flex:1;min-height:0;display:flex;flex-direction:column;gap:.6rem;padding:.8rem .85rem calc(.8rem + env(safe-area-inset-bottom,0px));
+  border-radius:1.8rem 1.8rem 0 0;border:2px solid #05080a;border-bottom:0;
+  background:linear-gradient(165deg,#34414c 0%,#1b242c 45%,#10161b 100%);
+  box-shadow:inset 0 2px 0 #5a6b78,inset 0 -6px 14px #0008;overflow:hidden}
+
+/* top deck: LED, name plate, volume */
+.deck{flex:none;display:flex;align-items:center;gap:.7rem;padding:0 .2rem}
+.led{flex:none;width:.9rem;height:.9rem;border-radius:50%;background:#2F8F5B;box-shadow:0 0 .6rem #2F8F5B,inset 0 1px 1px #fff6;border:1px solid #05080a;transition:background .15s,box-shadow .15s}
+body.offline .led{background:#6b4a14;box-shadow:none}
+#talk:has(.ptt.busy) .led{background:#F2B705;box-shadow:0 0 .7rem #F2B705}
+#talk:has(.ptt.tx) .led{background:#ff3b2f;box-shadow:0 0 .9rem #ff3b2f}
+.plate{font-weight:700;letter-spacing:.2em;font-size:.8rem;color:#9fb0bc;text-transform:uppercase}
+.vol{margin-left:auto;display:flex;align-items:center;gap:.45rem;font-size:.62rem;letter-spacing:.12em;color:#8fa2af}
+.vol input{width:min(36vw,9rem);height:1.7rem;margin:0;accent-color:#F2B705;background:none;border:0;padding:0}
+
+/* LCD */
+.lcd{flex:none;padding:.5rem .8rem .65rem;border-radius:.7rem;border:2px solid #05080a;color:#16240f;text-align:center;
+  background:linear-gradient(180deg,#a9c196,#8fa97c);box-shadow:inset 0 3px 8px #0006,0 1px 0 #5a6b78;font-family:ui-monospace,"Courier New",monospace}
+.lcdtop{display:flex;justify-content:space-between;gap:.5rem;font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;opacity:.8;white-space:nowrap}
+.lcdtop span{overflow:hidden;text-overflow:ellipsis}
+.lcd h1{margin:.25rem 0 0;font-size:clamp(1.2rem,6vw,1.7rem);text-transform:uppercase;letter-spacing:.04em;line-height:1.1;overflow-wrap:anywhere}
+#status{margin:.3rem 0 0;font-size:.78rem;text-transform:uppercase;letter-spacing:.03em;color:#243b17;min-height:1.2em}
+.netMsg{margin:.4rem 0 0;color:#6a1d12;font-size:.64rem;line-height:1.3;max-height:5.2rem;overflow:auto}
+
+/* hardware keys */
+.ck{min-width:0;height:2.7rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.08rem;padding:0 .3rem;line-height:1.05;text-align:center;
+  border:1px solid #05080a;border-radius:.6rem;background:linear-gradient(180deg,#3d4a56,#232d36);color:#d3dee6;font-size:.8rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+  box-shadow:inset 0 1px 0 #6b7c89,0 2px 0 #05080a}
+.ck span,.ck small{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ck small{font-size:.6rem;font-weight:400;opacity:.75;letter-spacing:.02em}
+.ck:active{transform:translateY(1px);box-shadow:inset 0 1px 0 #6b7c89,0 1px 0 #05080a}
+.ck[aria-current="true"]{background:linear-gradient(180deg,#b9d1a5,#8fa97c);color:#16240f;box-shadow:inset 0 2px 5px #0005,0 0 .7rem #8fa97c77}
+.ck.add{border-style:dashed;background:transparent;box-shadow:none}
+.ck.danger{height:2.2rem;width:100%;color:#ff8a80;background:transparent;box-shadow:none;border-color:#5a2a26}
+.chs{flex:none;display:grid;gap:.4rem}
+.chgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem;max-height:9.3rem;overflow-y:auto;padding:.1rem .1rem .25rem}
+.fk{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.4rem}
+
+/* speaker + push-to-talk */
+.wrap{flex:1 1 0;min-height:0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6rem;overflow:hidden;container-type:size}
+@supports (height:1cqh){.ptt{--s:clamp(5rem,min(72cqw,100cqh - 5rem),17rem)}}
+@supports (height:1cqh){@media (max-height:720px){.ptt{--s:clamp(5rem,min(72cqw,100cqh - 3rem),17rem)}}}
+.ptt{--s:clamp(6rem,min(58vw,30dvh),17rem);width:var(--s);height:var(--s);border-radius:50%;border:0;flex:none;touch-action:none;-webkit-touch-callout:none;
+  font-weight:700;font-size:calc(var(--s)*.088);text-transform:uppercase;letter-spacing:.04em;line-height:1.15;padding:0 6%;overflow:hidden;white-space:normal;word-break:keep-all;
+  background:radial-gradient(circle at 35% 28%,#ffd84d,#F2B705 55%,#b88500);color:#2A2000;transition:transform .08s,background .15s;
+  box-shadow:0 0 0 calc(var(--s)*.045) #0b1015,0 0 0 calc(var(--s)*.06) #4a5966,0 10px 18px #000a,inset 0 4px 8px #fff6,inset 0 -8px 14px #0005}
+.ptt.tx{font-size:calc(var(--s)*.074);background:radial-gradient(circle at 35% 28%,#ff7a6e,#D6372B 55%,#8e1a12);color:#fff;transform:scale(.97);
+  box-shadow:0 0 0 calc(var(--s)*.045) #0b1015,0 0 0 calc(var(--s)*.06) #ff3b2f,0 0 28px #ff3b2f88,inset 0 6px 12px #0006}
+.ptt.busy{background:radial-gradient(circle at 35% 28%,#5f6e7a,#3a4651 60%,#27313a);color:#b9c6cf;
+  box-shadow:0 0 0 calc(var(--s)*.045) #0b1015,0 0 0 calc(var(--s)*.06) #4a5966,inset 0 6px 12px #0006}
+.meter{display:flex;gap:.25rem;align-items:flex-end;height:1.2rem}
+.meter i{width:.55rem;height:20%;background:#37444f;border-radius:2px;transition:height .08s}
+#talk.tx-on .meter i{background:#F2B705}
+.hint{margin:0;color:#8fa2af;font-size:.7rem;line-height:1.25;text-align:center;max-width:100%}
+.credit{flex:none;text-align:center;font-size:.62rem;letter-spacing:.04em;color:#6f8290;text-decoration:none}
+.credit b{color:#9fb0bc}
+
+@media (max-height:720px){.credit,.hint{display:none}}
+@media (max-height:620px){.plate{display:none}.lcd h1{font-size:1.2rem}}
+@media (min-width:600px){.shell{border-radius:2.2rem 2.2rem 0 0}}
+@media (orientation:landscape) and (max-height:520px){
+  body{overflow:auto}
+  .radio{height:auto;min-height:100dvh;max-width:44rem}
+  .shell{overflow:visible}
+  .wrap{flex:none;padding:.5rem 0}
+  .ptt{--s:9rem}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* dialogs (people, settings, secure room, name) */
+dialog{border:1px solid var(--line);border-radius:1rem;background:var(--panel);color:var(--ink);width:min(92vw,26rem);max-height:90dvh;overflow:auto;padding:1rem 1.2rem;font:inherit}
 dialog::backdrop{background:#0009}
 dialog h2{margin:0 0 .4rem;font-size:1.3rem}
+dialog h3{margin:.9rem 0 .4rem;font-size:.9rem;font-weight:600;color:var(--mute)}
 .row{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.6rem 0;border-bottom:1px solid var(--line)}
 dialog input,dialog select{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:.5rem;padding:.4rem .5rem;min-height:2.4rem;max-width:11rem}
 dialog input[type=checkbox]{width:1.5rem;height:1.5rem;min-height:0}
@@ -81,60 +110,59 @@ dialog input[type=checkbox]{width:1.5rem;height:1.5rem;min-height:0}
 .dact button{flex:1;min-height:2.8rem;border-radius:.7rem;border:1px solid var(--line);background:none}
 .dact .pri{background:var(--sel);color:var(--selInk);border-color:var(--sel)}
 .note{margin:.7rem 0 0;color:var(--mute);font-size:.8rem}
-.credit{display:block;margin-top:1rem;padding-top:.8rem;border-top:1px solid var(--line);color:var(--mute);font-size:.8rem;text-decoration:none;line-height:1.4}
-.credit b,.note a{color:var(--ink)}
-.newroom{margin-top:.8rem;width:100%;min-height:2.8rem;border:1px dashed var(--mute);border-radius:.7rem;background:none}
+.note a{color:var(--ink)}
+.who{display:flex;align-items:center;gap:.7rem;padding:.5rem .2rem;border-bottom:1px solid var(--line)}
+.dot{width:.7rem;height:.7rem;border-radius:50%;background:var(--line);flex:none}
+.on .dot{background:var(--ok)}
+.who.talking .dot{background:var(--tx);animation:blink .8s infinite}
+.who span:last-child{margin-left:auto;color:var(--mute);font-size:.85rem}
 @keyframes blink{50%{opacity:.3}}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-/* Mobile: one view at a time + bottom nav */
-@media (max-width:767.98px){
-body[data-view="talk"] #channels,body[data-view="talk"] #people,
-body[data-view="channels"] #talk,body[data-view="channels"] #people,
-body[data-view="people"] #talk,body[data-view="people"] #channels{display:none}
-.chip{display:none}
-}
-@media (max-width:767.98px) and (orientation:landscape) and (max-height:520px){
-#talk{flex-direction:row;padding:.5rem 1rem}
-.info,.wrap{flex:1}
-.ptt{--s:min(40dvh,16rem)}
-.bar button{min-height:2.6rem;grid-auto-flow:column;gap:.4rem}
-.top{padding:.3rem .9rem}
-}
-/* Tablet: two columns */
-@media (min-width:768px){
-body{grid-template-columns:minmax(15rem,22rem) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) minmax(0,1fr);grid-template-areas:"top top" "channels talk" "people talk"}
-.top{grid-area:top}.bar{display:none}
-#channels{grid-area:channels;border-right:1px solid var(--line)}
-#people{grid-area:people;border-right:1px solid var(--line);border-top:1px solid var(--line)}
-#talk{grid-area:talk}
-}
-/* Desktop: fixed sidebar, main, right panel */
-@media (min-width:1100px){
-body{grid-template-columns:17rem minmax(0,1fr) 19rem;grid-template-rows:auto minmax(0,1fr);grid-template-areas:"top top top" "channels talk people"}
-#people{border-right:0;border-top:0;border-left:1px solid var(--line)}
-#log{display:block}
-.ptt{--s:clamp(12rem,min(30vw,46dvh),26rem)}
-}
+#installBar{position:fixed;left:50%;transform:translateX(-50%);top:calc(.7rem + env(safe-area-inset-top,0px));z-index:50;display:none;align-items:center;gap:.6rem;background:var(--sel);color:var(--selInk);border-radius:2rem;padding:.45rem .55rem .45rem 1rem;box-shadow:0 4px 18px rgba(0,0,0,.35);max-width:92vw}
+#installBar.show{display:flex}
+#installBar button{border:0;border-radius:2rem;padding:.4rem .9rem;font-weight:700}
+#installGo{background:var(--ptt);color:var(--pttInk)}
+#installX{background:transparent;color:inherit;opacity:.7}
 </style>
 </head>
-<body data-view="talk">
-<header class="top"><span class="brand">Relay</span><span class="now" id="now"></span><span class="chip" id="env"></span><button class="gear" id="gear" aria-label="Settings"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></button></header>
-<section class="panel" id="channels" aria-label="Channels"><h2>Channels</h2><ul id="chList"></ul><button class="newroom" id="newRoom">+ Secure room</button><a class="credit" href="https://mrtech.nptrunamentbd.top/" target="_blank" rel="noopener noreferrer">Developed by <b>MR TECH</b><br>© 2026 Mijanur Rahman</a></section>
-<main id="talk">
-  <div class="info"><h1 id="room"></h1><p id="status"></p><p class="note netMsg" hidden></p></div>
-  <div class="wrap">
-    <button class="ptt" id="ptt" aria-label="Push to talk">Hold to talk</button>
-    <div class="meter" id="meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-    <p class="hint" id="hint"></p>
+<body>
+<main id="talk" class="radio">
+  <div class="ant" aria-hidden="true"></div>
+  <div class="shell">
+    <div class="deck">
+      <i class="led" aria-hidden="true"></i>
+      <span class="plate">Relay</span>
+      <label class="vol">VOL<input type="range" id="qVol" min="0" max="1" step=".05" aria-label="Volume"></label>
+    </div>
+    <div class="lcd">
+      <div class="lcdtop"><span id="chno"></span><span id="now"></span></div>
+      <h1 id="room"></h1>
+      <p id="status"></p>
+      <p class="netMsg" hidden></p>
+    </div>
+    <div class="chs">
+      <div class="chgrid" id="chList" role="group" aria-label="Channels"></div>
+      <button class="ck danger" id="leave" hidden>Delete secure room</button>
+    </div>
+    <div class="wrap">
+      <button class="ptt" id="ptt" aria-label="Push to talk">Hold to talk</button>
+      <div class="meter" id="meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <p class="hint" id="hint"></p>
+    </div>
+    <div class="fk">
+      <button class="ck" id="kMode"><span>Mode</span><small></small></button>
+      <button class="ck" id="kBeep"><span>Beep</span><small></small></button>
+      <button class="ck" id="kPeople"><span>People</span><small></small></button>
+      <button class="ck" id="gear" aria-label="Settings"><span>Menu</span><small>Settings</small></button>
+    </div>
+    <a class="credit" href="https://mrtech.nptrunamentbd.top/" target="_blank" rel="noopener noreferrer">Developed by <b>MR TECH</b> · © 2026 Mijanur Rahman</a>
   </div>
-  <div id="log" class="panel" style="padding:.6rem .9rem;border:1px solid var(--line);border-radius:.7rem"><h2>Recent</h2><ul id="logList"></ul></div>
 </main>
-<section class="panel" id="people" aria-label="People"><h2 id="pTitle">People</h2><p class="note netMsg" hidden></p><ul id="pList"></ul><button class="newroom" id="leave" hidden>Delete secure room</button></section>
-<nav class="bar" aria-label="Sections">
-  <button data-view="channels"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Channels</button>
-  <button data-view="talk" aria-current="true"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Talk</button>
-  <button data-view="people"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5M17 6a3 3 0 0 1 0 6M21 20c0-2-1-4-3-4.6"/></svg>People</button>
-</nav>
+<dialog id="pdlg"><h2 id="pTitle">People</h2>
+<p class="note netMsg" hidden></p>
+<ul id="pList"></ul>
+<h3>Recent</h3>
+<ul id="logList"></ul>
+<div class="dact"><button class="pri" id="pClose">Done</button></div></dialog>
 <dialog id="ndlg"><h2>Welcome to Relay</h2>
 <label class="row">Your name<input id="nName" maxlength="16" autocomplete="off" placeholder="e.g. Rahim"></label>
 <p class="note">This name is saved on this device and shown to others in the channel. You can change it later in Settings.</p>
@@ -213,7 +241,7 @@ let ac=null,wl=null,rec=null,chunks=[];
 const keys={},seen={};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>"&#"+c.charCodeAt(0)+";");
 const time=()=>new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
-function beep(f=880,d=.12){if(!D.beep)return;try{ac=ac||new AudioContext();const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;g.gain.value=.15*D.vol;o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
+function beep(f=880,d=.12){if(!D.beep)return;try{ac=ac||new AudioContext();const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;g.gain.value=.04*D.vol;o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
 const buzz=n=>{if(D.hap&&navigator.vibrate)navigator.vibrate(n)};
 /* live streaming voice: small Opus chunks every 200 ms, low bitrate */
 const MT=["audio/webm;codecs=opus","audio/ogg;codecs=opus","audio/mp4"].find(t=>window.MediaRecorder&&MediaRecorder.isTypeSupported(t))||"";
@@ -260,19 +288,23 @@ function netText(){
   if(c===4001)return"Not connected: the server did not get the sign-in in time. Retrying.";
   if(c)return"Not connected: cannot reach the server. It may be waking up (wait about a minute), or ALLOWED_ORIGINS on Render does not match this page's address, which is "+location.origin;
   return"Connecting to the server… the free server can take up to a minute to wake up."}
-function updateNet(){const t=netText();document.querySelectorAll(".netMsg").forEach(e=>{e.textContent=t;e.hidden=!t})}
+function updateNet(){const t=netText();document.body.classList.toggle("offline",!!t);document.querySelectorAll(".netMsg").forEach(e=>{e.textContent=t;e.hidden=!t})}
 function members(){const c=CH.find(x=>x.id===S.room);return[[D.name+" (you)",c.id,1],...Object.values(peers[c.id]||{}).map(p=>[p.n,c.id,1])]}
 function render(){
   const ch=CH.find(c=>c.id===S.room),m=members(),on=m.filter(p=>p[2]).length;
-  $("room").textContent=(ch.sec?"🔒 ":"")+ch.n;$("leave").hidden=!ch.sec;$("now").textContent=ch.n+" · "+on+" online"+((!window.fbBus||fbBus.state()!=="online")?" · not connected":"");updateNet();
+  $("room").textContent=(ch.sec?"🔒 ":"")+ch.n;$("leave").hidden=!ch.sec;$("chno").textContent=ch.sec?"Secure":"CH "+String(CH.indexOf(ch)+1).padStart(2,"0");$("now").textContent=on+" online"+((!window.fbBus||fbBus.state()!=="online")?" · offline":"");updateNet();quick(on);
   $("pTitle").textContent="In "+ch.n;
-  $("chList").innerHTML=CH.map((c,i)=>{const k=c.sec?(c.id in keys?"🔒 open":"🔒 locked"):(Object.keys(peers[c.id]||{}).length+(c.id===S.room?1:0))+" online";
-    return `<li class="${c.sec?"sr":""}"><button class="ch" data-room="${c.id}" aria-current="${c.id===S.room}"><span>${esc(c.n)}</span><small>${k} · ${i+1}</small></button>${c.sec?`<button class="del" data-del="${c.id}" aria-label="Delete secure room ${esc(c.n)}" title="Delete room">🗑</button>`:""}</li>`}).join("");
+  $("chList").innerHTML=CH.map((c,i)=>{const k=c.sec?(c.id in keys?"🔒 open":"🔒 locked"):(Object.keys(peers[c.id]||{}).length+(c.id===S.room?1:0))+" on";
+    return `<button class="ck" data-room="${c.id}" aria-current="${c.id===S.room}"><span>${esc(c.n)}</span><small>${i+1} · ${k}</small></button>`}).join("")+`<button class="ck add" data-new="1"><span>+ Secure</span><small>new room</small></button>`;
   $("pList").innerHTML=m.map(p=>`<li class="who ${p[2]?"on":""} ${S.rx===p[0]?"talking":""}"><i class="dot"></i><span>${esc(p[0])}</span><span>${S.rx===p[0]?"speaking":p[2]?"online":"away"}</span></li>`).join("");
   $("logList").innerHTML=log.slice(0,5).map(l=>`<li class="who"><span>${esc(l[0])}</span><span>${l[1]}</span></li>`).join("")||`<li class="who"><span>No transmissions yet</span></li>`;
-  document.querySelectorAll(".bar button").forEach(b=>b.setAttribute("aria-current",b.dataset.view===S.view));
-  document.body.dataset.view=S.view;status();
+  status();
 }
+function quick(on){
+  $("kMode").lastElementChild.textContent=D.mode==="latch"?"Tap":"Hold";
+  $("kBeep").lastElementChild.textContent=D.beep?"On":"Off";$("kBeep").setAttribute("aria-pressed",D.beep);
+  $("kPeople").lastElementChild.textContent=on+" online";
+  $("qVol").value=D.vol}
 function status(){
   const p=$("ptt");p.classList.toggle("tx",S.tx);p.classList.toggle("busy",!!S.rx&&!S.tx);
   p.textContent=S.tx?"Transmitting":S.rx?"Channel busy":D.mode==="latch"?"Tap to talk":"Hold to talk";
@@ -285,7 +317,7 @@ function env(){
   const d=w<768?"Mobile":w<1100?"Tablet":w<1920?"Laptop / desktop":"Large display";
   const o=h>w?"portrait":"landscape";
   document.documentElement.dataset.device=d;document.documentElement.dataset.orientation=o;
-  $("env").textContent=`${d} · ${w}×${h} · ${o}${t?" · touch":""}`;hint();
+  hint();
 }
 /* audio level: real mic when allowed, simulated otherwise */
 async function level(on){
@@ -317,14 +349,13 @@ addEventListener("keyup",e=>{if(e.code==="Space"){e.preventDefault();release()}}
 addEventListener("blur",release);
 function setRoom(id){const c=CH.find(x=>x.id===id);if(!c)return;if(c.sec&&!keys[id]){openS(c);return}if(S.tx)up();S.room=id;S.rx=null;render();hello()}
 function delRoom(id){const c=CH.find(x=>x.id===id);if(!c||!c.sec)return;if(!confirm('Delete secure room "'+c.n+'" from this device? You will need the room name and passcode to join it again.'))return;if(S.tx)up();CH.splice(CH.indexOf(c),1);delete keys[id];delete peers[id];saveRooms();if(S.room===id){S.room="dispatch";S.rx=null;hello()}render()}
-$("chList").addEventListener("click",e=>{const d=e.target.closest("[data-del]");if(d){delRoom(d.dataset.del);return}const b=e.target.closest("[data-room]");if(b){setRoom(b.dataset.room);if(innerWidth<768)S.view="talk";render()}});
-document.querySelector(".bar").addEventListener("click",e=>{const b=e.target.closest("[data-view]");if(b){S.view=b.dataset.view;render()}});
+$("chList").addEventListener("click",e=>{if(e.target.closest("[data-new]")){openS(null);return}const b=e.target.closest("[data-room]");if(b)setRoom(b.dataset.room)});
 /* layout recalculation: no reload, state stays in S */
 let rt;const re=()=>{clearTimeout(rt);rt=setTimeout(env,60)};
 addEventListener("resize",re);addEventListener("orientationchange",re);
 matchMedia("(pointer:coarse)").addEventListener("change",env);
 
-const dlg=$("dlg"),map={oName:"name",oMode:"mode",oBeep:"beep",oHap:"hap",oWake:"wake",oDsp:"dsp",oVol:"vol",oTheme:"theme",oLow:"low"};
+const dlg=$("dlg"),map={oName:"name",oMode:"mode",oBeep:"beep",oHap:"hap",oWake:"wake",oDsp:"dsp",oVol:"vol",qVol:"vol",oTheme:"theme",oLow:"low"};
 function theme(){const r=document.documentElement;D.theme==="auto"?r.removeAttribute("data-theme"):r.dataset.theme=D.theme}
 async function wake(){try{if(D.wake&&"wakeLock" in navigator&&!wl){wl=await navigator.wakeLock.request("screen");wl.onrelease=()=>{wl=null}}else if(!D.wake&&wl){await wl.release();wl=null}}catch(e){}}
 function sync(){for(const[id,k]of Object.entries(map)){const el=$(id);if(el.type==="checkbox")el.checked=!!D[k];else el.value=D[k]}}
@@ -350,7 +381,7 @@ const dec=(key,iv,ct)=>crypto.subtle.decrypt({name:"AES-GCM",iv},key,ct);
 function saveRooms(){try{localStorage.setItem("relay-rooms",JSON.stringify(CH.filter(c=>c.sec).map(c=>({id:c.id,n:c.n,sec:1,ver:c.ver}))))}catch(e){}}
 try{JSON.parse(localStorage.getItem("relay-rooms")||"[]").forEach(r=>CH.push(r))}catch(e){}
 function openS(c){$("sTitle").textContent=c?"Unlock "+c.n:"Secure room";$("sName").value=c?c.n:"";$("sName").readOnly=!!c;$("sPass").value="";$("sPass").type="password";$("sMsg").textContent=DEF;$("sdlg").showModal();(c?$("sPass"):$("sName")).focus()}
-$("newRoom").onclick=()=>openS(null);$("sCancel").onclick=()=>$("sdlg").close();
+$("sCancel").onclick=()=>$("sdlg").close();
 $("sGen").onclick=()=>{const a=crypto.getRandomValues(new Uint8Array(12)),c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";$("sPass").type="text";$("sPass").value=[...a].map(x=>c[x%c.length]).join("").replace(/(.{4})(?=.)/g,"$1-")};
 $("sGo").onclick=async()=>{
   const n=$("sName").value.trim(),pw=$("sPass").value,msg=$("sMsg");
@@ -382,6 +413,10 @@ $("aMsg").textContent=FB?"Connecting to Firebase…":"Local mode: Firebase did n
 if(FB){CH.filter(c=>!c.sec).forEach(c=>FB.watch(c.id));const st=()=>{const q=FB.state();$("aMsg").textContent=q==="online"?"Connected to the Relay server.":q==="auth"?"Firebase sign-in failed ("+FB.err()+"). Turn on Anonymous sign-in in Firebase Authentication.":"Connecting to the Relay server… the free server can take up to a minute to wake up."};FB.onstate=()=>{st();updateNet()};st();FB.onkick=r=>{if(S.room===r){S.room="dispatch";S.rx=null;render();hello()}}}
 $("aGo").onclick=async()=>{if(!FB)return;try{$("aMsg").textContent="Signing in…";const ok=await FB.login($("aMail").value.trim(),$("aPass").value);$("aPass").value="";$("aMsg").textContent=ok?"Admin access confirmed.":"Signed in, but this account is not in the admins list.";$("aClr").hidden=!ok}catch(e){$("aMsg").textContent="Sign in failed ("+(e.code||"error")+")."}};
 $("aClr").onclick=async()=>{if(FB&&confirm("Move everyone else out of this channel?")){try{await FB.clear(S.room);$("aMsg").textContent="Everyone else was moved out."}catch(e){$("aMsg").textContent="Not allowed for this account."}}};
+$("kMode").onclick=()=>{if(S.tx)up();D.mode=D.mode==="latch"?"hold":"latch";save();sync();hint();render()};
+$("kBeep").onclick=()=>{D.beep=!D.beep;save();sync();render()};
+$("kPeople").onclick=()=>{render();$("pdlg").showModal()};$("pClose").onclick=()=>$("pdlg").close();
+$("qVol").addEventListener("input",()=>{if(R&&R.a)R.a.volume=D.vol});
 env();render();hello();
 </script>
 <div id="installBar" role="dialog" aria-label="Install app"><span id="installTxt">Install Relay on this device</span><button id="installGo">Install</button><button id="installX" aria-label="Close">✕</button></div>
