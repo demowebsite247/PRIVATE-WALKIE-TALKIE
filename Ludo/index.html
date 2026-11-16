@@ -78,7 +78,36 @@ li.on{border-color:var(--acc)}
 </div>
 <div id="toast" class="hide"></div>
 
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+/* Load PeerJS with a CDN fallback. */
+window.ensurePeerJS = function () {
+  if (window.Peer) return Promise.resolve(window.Peer);
+  if (window.__peerLoadPromise) return window.__peerLoadPromise;
+  const urls = [
+    "https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js",
+    "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"
+  ];
+  window.__peerLoadPromise = new Promise((resolve, reject) => {
+    let index = 0;
+    const attempt = () => {
+      if (window.Peer) return resolve(window.Peer);
+      if (index >= urls.length) {
+        window.__peerLoadPromise = null;
+        return reject(new Error("PeerJS লাইব্রেরি লোড হয়নি। ইন্টারনেট/CDN পরীক্ষা করুন।"));
+      }
+      const script = document.createElement("script");
+      script.src = urls[index++];
+      script.async = true;
+      script.onload = () => window.Peer
+        ? resolve(window.Peer)
+        : (script.remove(), attempt());
+      script.onerror = () => { script.remove(); attempt(); };
+      document.head.appendChild(script);
+    };
+    attempt();
+  });
+};
+</script>
 <script>
 
 "use strict";
@@ -177,23 +206,71 @@ function leaveAll(){
   hostConn=null;isHost=false;players=[];g=R=G=null;roomCode=null;busy=false;clearTimeout(autoMv);show("lobby");
 }
 async function create(n=0){
-  if(busy)return;busy=true;await getMic();
-  const code=String(10000+Math.floor(Math.random()*90000)),pr=new Peer("ludo-"+code);
-  pr.on("open",id=>{peer=pr;isHost=true;roomCode=code;players=[{name:me,pid:id,conn:null}];g=null;busy=false;pushRoom()});
-  pr.on("connection",conn=>{conn.on("data",m=>hostData(conn,m));conn.on("close",()=>{if(peer===pr)dropConn(conn)})});
-  pr.on("call",c=>{c.answer(mic);attach(c)});
-  pr.on("error",e=>{if(e.type==="unavailable-id"&&n<5){busy=false;create(n+1)}else if(peer===pr||!peer){toast("সংযোগ সমস্যা ("+e.type+")");leaveAll()}});
+  if(busy)return;
+  busy=true;
+  toast("রুম তৈরি হচ্ছে...");
+  try{
+    await window.ensurePeerJS();
+    const code=String(10000+Math.floor(Math.random()*90000));
+    const pr=new window.Peer("ludo-"+code);
+    pr.on("open",id=>{
+      peer=pr;isHost=true;roomCode=code;
+      players=[{name:me,pid:id,conn:null}];g=null;busy=false;
+      pushRoom();toast("রুম তৈরি হয়েছে। কোড: "+code);
+      getMic().catch(()=>{});
+    });
+    pr.on("connection",conn=>{
+      conn.on("data",m=>hostData(conn,m));
+      conn.on("close",()=>{if(peer===pr)dropConn(conn)});
+    });
+    pr.on("call",async c=>{
+      try{await getMic();c.answer(mic);attach(c)}
+      catch{toast("মাইক্রোফোন চালু করা যায়নি");}
+    });
+    pr.on("error",e=>{
+      if(e.type==="unavailable-id"&&n<5){busy=false;create(n+1)}
+      else if(peer===pr||!peer){busy=false;toast("রুম সংযোগ সমস্যা: "+(e.type||"unknown"));leaveAll()}
+    });
+    setTimeout(()=>{
+      if(peer!==pr&&busy){busy=false;toast("রুম সার্ভারে সংযোগ হচ্ছে না। ইন্টারনেট বা PeerJS সার্ভার পরীক্ষা করুন.");try{pr.destroy()}catch{}}
+    },15000);
+  }catch(e){
+    busy=false;
+    toast(e&&e.message?e.message:"রুম তৈরি করা যায়নি। আবার চেষ্টা করুন।");
+  }
 }
 async function join(){
   const code=$("code").value.replace(/\D/g,"");
   if(code.length!==5)return toast("৫ সংখ্যার রুম কোড দিন");
-  if(busy)return;busy=true;await getMic();
-  const pr=peer=new Peer();
-  pr.on("open",()=>{const c=hostConn=pr.connect("ludo-"+code,{reliable:true});
-    c.on("open",()=>c.send({t:"join",name:me}));c.on("data",onMsg);
-    c.on("close",()=>{if(peer===pr){toast("রুম বন্ধ হয়ে গেছে");leaveAll()}})});
-  pr.on("call",c=>{c.answer(mic);attach(c)});
-  pr.on("error",e=>{if(peer!==pr)return;toast(e.type==="peer-unavailable"?"রুম পাওয়া যায়নি":"সংযোগ সমস্যা ("+e.type+")");leaveAll()});
+  if(busy)return;
+  busy=true;toast("রুমে যোগ দেওয়া হচ্ছে...");
+  try{
+    await window.ensurePeerJS();
+    const pr=peer=new window.Peer();
+    pr.on("open",()=>{
+      const c=hostConn=pr.connect("ludo-"+code,{reliable:true});
+      c.on("open",()=>{busy=false;c.send({t:"join",name:me});toast("রুমে সংযোগ হয়েছে")});
+      c.on("data",onMsg);
+      c.on("close",()=>{if(peer===pr){toast("রুম বন্ধ হয়ে গেছে");leaveAll()}});
+      setTimeout(()=>{
+        if(peer===pr&&busy){busy=false;toast("রুমে সংযোগ হচ্ছে না। কোড ও হোস্টের সংযোগ পরীক্ষা করুন.");}
+      },15000);
+      getMic().catch(()=>{});
+    });
+    pr.on("call",async c=>{
+      try{await getMic();c.answer(mic);attach(c)}
+      catch{toast("মাইক্রোফোন চালু করা যায়নি");}
+    });
+    pr.on("error",e=>{
+      if(peer!==pr)return;
+      busy=false;
+      toast(e.type==="peer-unavailable"?"রুম পাওয়া যায়নি":"সংযোগ সমস্যা ("+(e.type||"unknown")+")");
+      leaveAll();
+    });
+  }catch(e){
+    busy=false;
+    toast(e&&e.message?e.message:"রুমে যোগ দেওয়া যায়নি। আবার চেষ্টা করুন।");
+  }
 }
 
 /* ---- screens ---- */
