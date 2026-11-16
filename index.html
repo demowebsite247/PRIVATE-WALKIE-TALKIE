@@ -1,1 +1,335 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Relay – Push-to-talk</title>
+<meta name="author" content="MR TECH (Mijanur Rahman)">
+
+
+<style>
+:root{--bg:#E4E9EC;--panel:#F6F8F9;--ink:#1B2A35;--mute:#5C6E7A;--line:#CBD4DA;--ptt:#F2B705;--pttInk:#2A2000;--tx:#D6372B;--ok:#2F8F5B;--sel:#1B2A35;--selInk:#F6F8F9;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+font-size:clamp(14px,.55vw + 10.5px,26px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11181E;--panel:#1A242C;--ink:#E4EBEF;--mute:#8FA2AF;--line:#2B3944;--sel:#E4EBEF;--selInk:#11181E}}
+:root[data-theme="dark"]{--bg:#11181E;--panel:#1A242C;--ink:#E4EBEF;--mute:#8FA2AF;--line:#2B3944;--sel:#E4EBEF;--selInk:#11181E}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Arial Narrow","Roboto Condensed",system-ui,sans-serif;display:grid;grid-template-rows:auto minmax(0,1fr) auto;grid-template-columns:minmax(0,1fr);overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:.15rem solid var(--ink);outline-offset:.15rem}
+.top{display:flex;align-items:center;gap:.8rem;padding:.55rem .9rem;border-bottom:1px solid var(--line);background:var(--panel);min-width:0}
+.brand{font-weight:700;font-size:1.25rem;letter-spacing:.02em}
+.now{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--mute)}
+.chip{font-size:.8rem;color:var(--mute);border:1px solid var(--line);border-radius:99px;padding:.15rem .6rem;white-space:nowrap}
+.panel{background:var(--panel);overflow:auto;min-height:0;padding:.9rem}
+.panel h2{margin:0 0 .6rem;font-size:1rem;font-weight:600;color:var(--mute)}
+ul{list-style:none;margin:0;padding:0;display:grid;gap:.4rem}
+.ch{width:100%;display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.8rem .9rem;min-height:3rem;border:1px solid var(--line);border-radius:.7rem;background:transparent;text-align:left}
+.ch[aria-current="true"]{background:var(--sel);color:var(--selInk);border-color:var(--sel)}
+.ch small{opacity:.7}
+.who{display:flex;align-items:center;gap:.7rem;padding:.5rem .2rem;border-bottom:1px solid var(--line)}
+.dot{width:.7rem;height:.7rem;border-radius:50%;background:var(--line);flex:none}
+.on .dot{background:var(--ok)}
+.who.talking .dot{background:var(--tx);animation:blink .8s infinite}
+.who span:last-child{margin-left:auto;color:var(--mute);font-size:.85rem}
+#talk{min-height:0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;gap:1rem;padding:1rem;overflow:auto;text-align:center}
+.info h1{margin:0;font-size:clamp(1.6rem,4vw + .6rem,3rem);line-height:1.05}
+#status{margin:.4rem 0 0;color:var(--mute);min-height:1.4em}
+.wrap{display:grid;justify-items:center;gap:1rem}
+.ptt{--s:clamp(8.5rem,min(56vw,40dvh),24rem);width:var(--s);height:var(--s);border-radius:50%;border:0;background:var(--ptt);color:var(--pttInk);font-weight:700;font-size:calc(var(--s)*.14);touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;box-shadow:0 0 0 calc(var(--s)*.05) var(--bg),0 0 0 calc(var(--s)*.065) var(--ptt);transition:transform .08s,background .15s}
+.ptt.tx{background:var(--tx);color:#fff;transform:scale(.96);box-shadow:0 0 0 calc(var(--s)*.05) var(--bg),0 0 0 calc(var(--s)*.065) var(--tx)}
+.ptt.busy{background:var(--line);color:var(--mute)}
+.meter{display:flex;gap:.25rem;align-items:flex-end;height:1.6rem}
+.meter i{width:.4rem;height:20%;background:var(--line);border-radius:2px;transition:height .08s}
+.tx-on .meter i{background:var(--tx)}
+.hint{margin:0;color:var(--mute);font-size:.85rem}
+#log{display:none;width:min(100%,32rem);text-align:left}
+.bar{display:flex;border-top:1px solid var(--line);background:var(--panel)}
+.bar button{flex:1;min-height:3.6rem;border:0;background:none;display:grid;place-items:center;gap:.1rem;padding:.4rem;color:var(--mute);font-size:.85rem}
+.bar button[aria-current="true"]{color:var(--ink);font-weight:700}
+.bar svg{width:1.5rem;height:1.5rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.gear{width:2.4rem;height:2.4rem;flex:none;border:1px solid var(--line);border-radius:50%;background:none;display:grid;place-items:center}
+dialog{border:1px solid var(--line);border-radius:1rem;background:var(--panel);color:var(--ink);width:min(92vw,26rem);max-height:90dvh;padding:1rem 1.2rem;font:inherit}
+dialog::backdrop{background:#0009}
+dialog h2{margin:0 0 .4rem;font-size:1.3rem}
+.row{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.6rem 0;border-bottom:1px solid var(--line)}
+dialog input,dialog select{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:.5rem;padding:.4rem .5rem;min-height:2.4rem;max-width:11rem}
+dialog input[type=checkbox]{width:1.5rem;height:1.5rem;min-height:0}
+.dact{display:flex;gap:.6rem;margin-top:.9rem}
+.dact button{flex:1;min-height:2.8rem;border-radius:.7rem;border:1px solid var(--line);background:none}
+.dact .pri{background:var(--sel);color:var(--selInk);border-color:var(--sel)}
+.note{margin:.7rem 0 0;color:var(--mute);font-size:.8rem}
+.credit{display:block;margin-top:1rem;padding-top:.8rem;border-top:1px solid var(--line);color:var(--mute);font-size:.8rem;text-decoration:none;line-height:1.4}
+.credit b,.note a{color:var(--ink)}
+.newroom{margin-top:.8rem;width:100%;min-height:2.8rem;border:1px dashed var(--mute);border-radius:.7rem;background:none}
+@keyframes blink{50%{opacity:.3}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* Mobile: one view at a time + bottom nav */
+@media (max-width:767.98px){
+body[data-view="talk"] #channels,body[data-view="talk"] #people,
+body[data-view="channels"] #talk,body[data-view="channels"] #people,
+body[data-view="people"] #talk,body[data-view="people"] #channels{display:none}
+.chip{display:none}
+}
+@media (max-width:767.98px) and (orientation:landscape) and (max-height:520px){
+#talk{flex-direction:row;padding:.5rem 1rem}
+.info,.wrap{flex:1}
+.ptt{--s:min(40dvh,16rem)}
+.bar button{min-height:2.6rem;grid-auto-flow:column;gap:.4rem}
+.top{padding:.3rem .9rem}
+}
+/* Tablet: two columns */
+@media (min-width:768px){
+body{grid-template-columns:minmax(15rem,22rem) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) minmax(0,1fr);grid-template-areas:"top top" "channels talk" "people talk"}
+.top{grid-area:top}.bar{display:none}
+#channels{grid-area:channels;border-right:1px solid var(--line)}
+#people{grid-area:people;border-right:1px solid var(--line);border-top:1px solid var(--line)}
+#talk{grid-area:talk}
+}
+/* Desktop: fixed sidebar, main, right panel */
+@media (min-width:1100px){
+body{grid-template-columns:17rem minmax(0,1fr) 19rem;grid-template-rows:auto minmax(0,1fr);grid-template-areas:"top top top" "channels talk people"}
+#people{border-right:0;border-top:0;border-left:1px solid var(--line)}
+#log{display:block}
+.ptt{--s:clamp(12rem,min(30vw,46dvh),26rem)}
+}
+</style>
+</head>
+<body data-view="talk">
+<header class="top"><span class="brand">Relay</span><span class="now" id="now"></span><span class="chip" id="env"></span><button class="gear" id="gear" aria-label="Settings"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></button></header>
+<section class="panel" id="channels" aria-label="Channels"><h2>Channels</h2><ul id="chList"></ul><button class="newroom" id="newRoom">+ Secure room</button><a class="credit" href="https://mrtech.nptrunamentbd.top/" target="_blank" rel="noopener noreferrer">Developed by <b>MR TECH</b><br>© 2026 Mijanur Rahman</a></section>
+<main id="talk">
+  <div class="info"><h1 id="room"></h1><p id="status"></p></div>
+  <div class="wrap">
+    <button class="ptt" id="ptt" aria-label="Push to talk">Hold to talk</button>
+    <div class="meter" id="meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <p class="hint" id="hint"></p>
+  </div>
+  <div id="log" class="panel" style="padding:.6rem .9rem;border:1px solid var(--line);border-radius:.7rem"><h2>Recent</h2><ul id="logList"></ul></div>
+</main>
+<section class="panel" id="people" aria-label="People"><h2 id="pTitle">People</h2><ul id="pList"></ul><button class="newroom" id="leave" hidden>Leave secure room</button></section>
+<nav class="bar" aria-label="Sections">
+  <button data-view="channels"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Channels</button>
+  <button data-view="talk" aria-current="true"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Talk</button>
+  <button data-view="people"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5M17 6a3 3 0 0 1 0 6M21 20c0-2-1-4-3-4.6"/></svg>People</button>
+</nav>
+<dialog id="sdlg"><h2 id="sTitle">Secure room</h2>
+<label class="row">Room name<input id="sName" maxlength="24" autocomplete="off"></label>
+<label class="row">Passcode<input id="sPass" type="password" autocomplete="off"></label>
+<p class="note" id="sMsg"></p>
+<div class="dact"><button id="sGen">Generate</button><button id="sCancel">Cancel</button><button class="pri" id="sGo">Open</button></div></dialog>
+<dialog id="dlg"><h2>Settings</h2>
+<label class="row">Callsign<input id="oName" maxlength="16" autocomplete="off"></label>
+<label class="row">Talk mode<select id="oMode"><option value="hold">Hold to talk</option><option value="latch">Tap to start / stop</option></select></label>
+<label class="row">Roger beep<input type="checkbox" id="oBeep"></label>
+<label class="row">Haptic feedback<input type="checkbox" id="oHap"></label>
+<label class="row">Keep screen on<input type="checkbox" id="oWake"></label>
+<label class="row">Noise cancelling<input type="checkbox" id="oDsp"></label>
+<label class="row">Volume<input type="range" id="oVol" min="0" max="1" step=".05"></label>
+<label class="row">Data saver<select id="oLow"><option value="auto">Auto (slow network)</option><option value="on">Always on</option><option value="off">Off</option></select></label>
+<label class="row">Theme<select id="oTheme"><option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
+<p class="note">Voice is shared live between Relay tabs and windows open in this browser. Settings are saved on this device.</p>
+<label class="row">Admin email<input id="aMail" type="email" autocomplete="username"></label>
+<label class="row">Password<input id="aPass" type="password" autocomplete="current-password"></label>
+<div class="dact"><button id="aGo">Admin sign in</button><button id="aClr" hidden>Clear channel</button></div>
+<p class="note" id="aMsg"></p>
+<p class="note">Relay is developed by <a href="https://mrtech.nptrunamentbd.top/" target="_blank" rel="noopener noreferrer">MR TECH</a> (Mijanur Rahman), Web &amp; Mobile App Developer.</p>
+<div class="dact"><button id="oClear">Clear history</button><button class="pri" id="oClose">Done</button></div></dialog>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-app-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-database-compat.js"></script>
+<script>
+/* Firebase transport: same message shape as the local bus, so the app code is unchanged */
+(function(){if(!window.firebase)return;
+const cfg={apiKey:"AIzaSyD840048Sta1mu4SmGkzBL-CikkyeW_igw",authDomain:"private-walkie-talkie.firebaseapp.com",databaseURL:"https://private-walkie-talkie-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"private-walkie-talkie",storageBucket:"private-walkie-talkie.firebasestorage.app",messagingSenderId:"830840396667",appId:"1:830840396667:web:f4d103f947021e22943bde"};
+firebase.initializeApp(cfg);const db=firebase.database(),auth=firebase.auth(),id=Math.random().toString(36).slice(2,8),H=[],ps={};
+let uid=null,err="",admin=false,vr=null,vroom=null;
+const b64=u=>{u=new Uint8Array(u);let s="";for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(s)};
+const ub=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const emit=d=>H.forEach(f=>f({data:d}));
+const ready=auth.signInAnonymously().then(c=>{uid=c.user.uid}).catch(e=>{err=e.code||"error"});
+function subP(r){if(ps[r])return;ps[r]=1;const ref=db.ref("relay/p/"+r);
+  const f=s=>{const v=s.val();if(!v||s.key===id)return;emit({type:"hi",from:s.key,room:r,name:v.n,sec:v.iv?1:0,iv:v.iv?ub(v.iv):undefined,ct:v.ct?ub(v.ct).buffer:undefined})};
+  ref.on("child_added",f);ref.on("child_changed",f);ref.on("child_removed",s=>emit({type:"bye",from:s.key}))}
+function subV(r){if(vroom===r)return;if(vr)vr.off();vroom=r;const start=db.ref("relay/v/"+r).push().key;
+  vr=db.ref("relay/v/"+r).orderByKey().startAt(start);
+  vr.on("child_added",s=>{const v=s.val();if(!v||v.f===id)return;emit({type:"v",from:v.f,room:r,sid:v.sid,seq:v.seq,end:!!v.end,mime:v.mime||"",buf:v.buf?ub(v.buf).buffer:undefined,iv:v.iv?ub(v.iv):undefined,ct:v.ct?ub(v.ct).buffer:undefined,sec:v.sec})})}
+window.fbBus={id,ready,uid:()=>uid,err:()=>err,
+  addEventListener(t,f){if(t==="message")H.push(f)},
+  watch:async r=>{await ready;if(uid)subP(r)},
+  async postMessage(m){await ready;if(!uid)return;
+    if(m.type==="hi"){subP(m.room);subV(m.room);const ref=db.ref("relay/p/"+m.room+"/"+id),o={ts:firebase.database.ServerValue.TIMESTAMP};if(m.name)o.n=m.name;if(m.iv){o.iv=b64(m.iv);o.ct=b64(m.ct)}ref.onDisconnect().remove();ref.set(o);return}
+    if(m.type==="bye"){for(const r in ps)db.ref("relay/p/"+r+"/"+id).remove();return}
+    if(m.type==="v"){const o={f:id,sid:m.sid,seq:m.seq,end:m.end?1:0,mime:m.mime||""};if(m.iv){o.iv=b64(m.iv);o.ct=b64(m.ct);o.sec=1}else o.buf=b64(m.buf);const r=db.ref("relay/v/"+m.room).push();r.set(o);setTimeout(()=>r.remove(),10000)}},
+  async login(e,p){await auth.signInWithEmailAndPassword(e,p);uid=auth.currentUser.uid;admin=(await db.ref("admins/"+uid).once("value")).val()===true;return admin},
+  clear:r=>Promise.all([db.ref("relay/v/"+r).remove(),db.ref("relay/p/"+r).remove()])};
+})();
+</script>
+<script>
+const CH=[{id:"dispatch",n:"Dispatch"},{id:"field",n:"Field team"},{id:"warehouse",n:"Warehouse"},{id:"security",n:"Security"},{id:"family",n:"Family"}];
+
+const S={room:"dispatch",view:"talk",tx:false,rx:null};
+const D={name:"You",mode:"hold",beep:true,hap:true,wake:false,dsp:true,vol:.7,theme:"auto",low:"auto"};
+try{Object.assign(D,JSON.parse(localStorage.getItem("relay")||"{}"))}catch(e){}
+const save=()=>{try{localStorage.setItem("relay",JSON.stringify(D))}catch(e){}};
+const bc=window.fbBus||(("BroadcastChannel" in window)?new BroadcastChannel("relay-voice"):null);
+const me=(window.fbBus&&fbBus.id)||Math.random().toString(36).slice(2,8);
+let ac=null,wl=null,rec=null,chunks=[];
+const keys={},seen={};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>"&#"+c.charCodeAt(0)+";");
+const time=()=>new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+function beep(f=880,d=.12){if(!D.beep)return;try{ac=ac||new AudioContext();const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;g.gain.value=.15*D.vol;o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
+const buzz=n=>{if(D.hap&&navigator.vibrate)navigator.vibrate(n)};
+/* live streaming voice: small Opus chunks every 200 ms, low bitrate */
+const MT=["audio/webm;codecs=opus","audio/ogg;codecs=opus","audio/mp4"].find(t=>window.MediaRecorder&&MediaRecorder.isTypeSupported(t))||"";
+let sid=0,seq=0;
+function lowData(){const n=navigator.connection;return D.low==="on"||(D.low==="auto"&&!!n&&(!!n.saveData||/^(slow-2g|2g|3g)$/.test(n.effectiveType||"")))}
+function startRec(){try{sid=Date.now();seq=0;const r=new MediaRecorder(mic,{...(MT?{mimeType:MT}:{}),audioBitsPerSecond:lowData()?12000:24000});rec=r;r.ondataavailable=e=>{if(e.data.size)tx(e.data,0)};r.onstop=()=>tx(null,1);r.start(200)}catch(e){rec=null}}
+async function tx(b,end){if(!bc)return;const c=CH.find(x=>x.id===S.room),k=keys[c.id],msg={type:"v",from:me,room:c.id,sid,seq:seq++,end,mime:MT};try{const buf=b?await b.arrayBuffer():new ArrayBuffer(0);if(c.sec){if(!k)return;const a=await enc(k,buf);msg.sec=1;msg.iv=a.iv;msg.ct=a.ct}else msg.buf=buf;bc.postMessage(msg)}catch(e){}}
+  
+  
+let R=null;
+const peerName=(r,f)=>(peers[r]&&peers[r][f]&&peers[r][f].n)||"Someone";
+function rxDone(){if(!R)return;const r=R;R=null;clearTimeout(r.t);try{r.a.pause()}catch(e){}if(r.u)URL.revokeObjectURL(r.u);S.rx=null;log.unshift([r.name,time()]);render()}
+function pump(){if(!R)return;
+  while(R.q[R.n]!==undefined){const x=R.q[R.n];
+    if(x==="end"){R.fin=true;R.n++;break}
+    if(R.mse){if(!R.sb||R.sb.updating)return;R.sb.appendBuffer(x);delete R.q[R.n];R.n++;if(R.a.paused)R.a.play().catch(()=>{});return}
+    R.parts.push(x);delete R.q[R.n];R.n++}
+  if(!R.fin||R.closed)return;
+  if(R.mse){if(R.sb&&R.sb.updating)return;R.closed=true;try{if(R.ms.readyState==="open")R.ms.endOfStream()}catch(e){}R.a.onended=rxDone;if(R.a.ended)rxDone()}
+  else{R.closed=true;R.u=URL.createObjectURL(new Blob(R.parts,{type:R.mime}));R.a.src=R.u;R.a.onended=rxDone;R.a.play().catch(rxDone)}}
+function onChunk(m,buf){const key=m.from+":"+m.sid;
+  if(!R||R.key!==key){if(R)return;
+    R={key,name:peerName(m.room,m.from),q:{},n:0,a:new Audio(),parts:[],mime:m.mime,mse:!!(window.MediaSource&&m.mime&&MediaSource.isTypeSupported(m.mime))};
+    R.a.volume=D.vol;S.rx=R.name;render();beep(660,.08);
+    if(R.mse){R.ms=new MediaSource();R.u=URL.createObjectURL(R.ms);R.a.src=R.u;R.ms.addEventListener("sourceopen",()=>{if(!R||R.sb)return;R.sb=R.ms.addSourceBuffer(m.mime);R.sb.mode="sequence";R.sb.addEventListener("updateend",pump);pump()},{once:true})}}
+  clearTimeout(R.t);R.t=setTimeout(rxDone,4000);R.q[m.seq]=m.end?"end":buf;pump()}
+if(bc)bc.addEventListener("message",async e=>{const m=e.data;if(!m||m.type!=="v"||m.from===me||m.room!==S.room||S.tx)return;const c=CH.find(x=>x.id===m.room);let buf=m.buf;
+  if(c.sec){const k=keys[m.room];if(!k||!m.iv)return;try{buf=await dec(k,m.iv,m.ct)}catch(x){return}}else if(m.iv)return;
+  onChunk(m,buf)});
+  
+  
+const $=id=>document.getElementById(id);
+const bars=[...document.querySelectorAll("#meter i")];
+let mic=null,ctx=null,an=null,raf=0,log=[];
+
+function members(){const c=CH.find(x=>x.id===S.room);return[[D.name+" (you)",c.id,1],...Object.values(peers[c.id]||{}).map(p=>[p.n,c.id,1])]}
+function render(){
+  const ch=CH.find(c=>c.id===S.room),m=members(),on=m.filter(p=>p[2]).length;
+  $("room").textContent=(ch.sec?"🔒 ":"")+ch.n;$("leave").hidden=!ch.sec;$("now").textContent=ch.n+" · "+on+" online";
+  $("pTitle").textContent="In "+ch.n;
+  $("chList").innerHTML=CH.map((c,i)=>{const k=c.sec?(c.id in keys?"🔒 open":"🔒 locked"):(Object.keys(peers[c.id]||{}).length+(c.id===S.room?1:0))+" online";
+    return `<li><button class="ch" data-room="${c.id}" aria-current="${c.id===S.room}"><span>${esc(c.n)}</span><small>${k} · ${i+1}</small></button></li>`}).join("");
+  $("pList").innerHTML=m.map(p=>`<li class="who ${p[2]?"on":""} ${S.rx===p[0]?"talking":""}"><i class="dot"></i><span>${esc(p[0])}</span><span>${S.rx===p[0]?"speaking":p[2]?"online":"away"}</span></li>`).join("");
+  $("logList").innerHTML=log.slice(0,5).map(l=>`<li class="who"><span>${esc(l[0])}</span><span>${l[1]}</span></li>`).join("")||`<li class="who"><span>No transmissions yet</span></li>`;
+  document.querySelectorAll(".bar button").forEach(b=>b.setAttribute("aria-current",b.dataset.view===S.view));
+  document.body.dataset.view=S.view;status();
+}
+function status(){
+  const p=$("ptt");p.classList.toggle("tx",S.tx);p.classList.toggle("busy",!!S.rx&&!S.tx);
+  p.textContent=S.tx?"Transmitting":S.rx?"Channel busy":D.mode==="latch"?"Tap to talk":"Hold to talk";
+  $("status").textContent=S.tx?(mic===false?"No microphone access, nothing is sent":"You are live on "+CH.find(c=>c.id===S.room).n):S.rx?S.rx+" is speaking":"Channel is clear";
+  $("talk").classList.toggle("tx-on",S.tx||!!S.rx);
+}
+function hint(){const t=matchMedia("(pointer:coarse)").matches,l=D.mode==="latch";$("hint").textContent=t?(l?"Tap once to start, tap again to stop":"Press and hold the button to talk"):(l?"Click or press Space to start and stop":"Hold the button or Space to talk")+" · keys 1–5 switch channel"}
+function env(){
+  const w=innerWidth,h=innerHeight,t=matchMedia("(pointer:coarse)").matches||navigator.maxTouchPoints>0;
+  const d=w<768?"Mobile":w<1100?"Tablet":w<1920?"Laptop / desktop":"Large display";
+  const o=h>w?"portrait":"landscape";
+  document.documentElement.dataset.device=d;document.documentElement.dataset.orientation=o;
+  $("env").textContent=`${d} · ${w}×${h} · ${o}${t?" · touch":""}`;hint();
+}
+/* audio level: real mic when allowed, simulated otherwise */
+async function level(on){
+  clearTimeout(raf);
+  if(!on){bars.forEach(b=>b.style.height="20%");return}
+  if(mic===null){try{mic=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:D.dsp,noiseSuppression:D.dsp,autoGainControl:D.dsp}});ctx=new(window.AudioContext||window.webkitAudioContext)();an=ctx.createAnalyser();an.fftSize=64;ctx.createMediaStreamSource(mic).connect(an)}catch(e){mic=false;status()}}
+  if(mic&&S.tx&&bc&&window.MediaRecorder&&!rec)startRec();
+  const buf=new Uint8Array(32);
+  (function f(){
+    let v=0;if(mic&&an){an.getByteFrequencyData(buf);v=buf.reduce((a,b)=>a+b,0)/buf.length/160}
+    bars.forEach((b,i)=>b.style.height=Math.max(15,Math.min(100,(mic&&an?buf[i*3]/2.5:0)))+"%");
+    raf=setTimeout(f,70)
+  })();
+}
+function down(){if(S.tx||S.rx)return;S.tx=true;status();level(true);beep(1100,.06);buzz(15)}
+function up(){if(!S.tx)return;S.tx=false;status();level(false);const sent=!!(rec&&rec.state==="recording");if(sent){rec.stop();rec=null}beep(700,.1);if(sent)log.unshift([D.name+" (you)",time()]);render()}
+const press=()=>{if(D.mode==="latch")S.tx?up():down();else down()};
+const release=()=>{if(D.mode!=="latch")up()};
+const p=$("ptt");
+p.addEventListener("pointerdown",e=>{e.preventDefault();p.setPointerCapture(e.pointerId);press()});
+["pointerup","pointercancel","lostpointercapture"].forEach(n=>p.addEventListener(n,release));
+p.addEventListener("contextmenu",e=>e.preventDefault());
+addEventListener("keydown",e=>{
+  if(e.target.closest&&e.target.closest("input,textarea"))return;
+  if(e.code==="Space"&&!e.repeat){e.preventDefault();press()}
+  else if(/^[1-5]$/.test(e.key)&&!e.ctrlKey&&!e.metaKey){setRoom(CH[+e.key-1].id)}
+});
+addEventListener("keyup",e=>{if(e.code==="Space"){e.preventDefault();release()}});
+addEventListener("blur",release);
+function setRoom(id){const c=CH.find(x=>x.id===id);if(!c)return;if(c.sec&&!keys[id]){openS(c);return}if(S.tx)up();S.room=id;S.rx=null;render();hello()}
+$("chList").addEventListener("click",e=>{const b=e.target.closest("[data-room]");if(b){setRoom(b.dataset.room);if(innerWidth<768)S.view="talk";render()}});
+document.querySelector(".bar").addEventListener("click",e=>{const b=e.target.closest("[data-view]");if(b){S.view=b.dataset.view;render()}});
+/* layout recalculation: no reload, state stays in S */
+let rt;const re=()=>{clearTimeout(rt);rt=setTimeout(env,60)};
+addEventListener("resize",re);addEventListener("orientationchange",re);
+matchMedia("(pointer:coarse)").addEventListener("change",env);
+
+const dlg=$("dlg"),map={oName:"name",oMode:"mode",oBeep:"beep",oHap:"hap",oWake:"wake",oDsp:"dsp",oVol:"vol",oTheme:"theme",oLow:"low"};
+function theme(){const r=document.documentElement;D.theme==="auto"?r.removeAttribute("data-theme"):r.dataset.theme=D.theme}
+async function wake(){try{if(D.wake&&"wakeLock" in navigator&&!wl){wl=await navigator.wakeLock.request("screen");wl.onrelease=()=>{wl=null}}else if(!D.wake&&wl){await wl.release();wl=null}}catch(e){}}
+function sync(){for(const[id,k]of Object.entries(map)){const el=$(id);if(el.type==="checkbox")el.checked=!!D[k];else el.value=D[k]}}
+for(const[id,k]of Object.entries(map))$(id).addEventListener("input",e=>{const el=e.target;D[k]=el.type==="checkbox"?el.checked:el.type==="range"?+el.value:(el.value.trim()||(k==="name"?"You":el.value));if(k==="dsp"){if(mic&&mic.getTracks)mic.getTracks().forEach(t=>t.stop());mic=null;an=null}save();theme();wake();hint();render()});
+$("gear").onclick=()=>{sync();dlg.showModal()};$("oClose").onclick=()=>dlg.close();$("oClear").onclick=()=>{log=[];render()};
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)wake()});
+sync();theme();wake();
+/* secure rooms: PBKDF2 (200k) key from passcode, AES-256-GCM voice encryption */
+const DEF="Voice is end-to-end encrypted with this passcode (AES-256-GCM). Everyone needs the same room name and passcode. Passcodes are never saved.";
+const b64=u=>btoa(String.fromCharCode(...new Uint8Array(u))),ub=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0)),te=s=>new TextEncoder().encode(s);
+const hx=async s=>[...new Uint8Array(await crypto.subtle.digest("SHA-256",te(s)))].map(b=>b.toString(16).padStart(2,"0")).join("");
+async function mk(pw,salt){const k=await crypto.subtle.importKey("raw",te(pw),"PBKDF2",false,["deriveKey"]);return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:200000,hash:"SHA-256"},k,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])}
+async function enc(key,buf){const iv=crypto.getRandomValues(new Uint8Array(12));return{iv,ct:await crypto.subtle.encrypt({name:"AES-GCM",iv},key,buf)}}
+const dec=(key,iv,ct)=>crypto.subtle.decrypt({name:"AES-GCM",iv},key,ct);
+function saveRooms(){try{localStorage.setItem("relay-rooms",JSON.stringify(CH.filter(c=>c.sec).map(c=>({id:c.id,n:c.n,sec:1,ver:c.ver}))))}catch(e){}}
+try{JSON.parse(localStorage.getItem("relay-rooms")||"[]").forEach(r=>CH.push(r))}catch(e){}
+function openS(c){$("sTitle").textContent=c?"Unlock "+c.n:"Secure room";$("sName").value=c?c.n:"";$("sName").readOnly=!!c;$("sPass").value="";$("sPass").type="password";$("sMsg").textContent=DEF;$("sdlg").showModal();(c?$("sPass"):$("sName")).focus()}
+$("newRoom").onclick=()=>openS(null);$("sCancel").onclick=()=>$("sdlg").close();
+$("sGen").onclick=()=>{const a=crypto.getRandomValues(new Uint8Array(12)),c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";$("sPass").type="text";$("sPass").value=[...a].map(x=>c[x%c.length]).join("").replace(/(.{4})(?=.)/g,"$1-")};
+$("sGo").onclick=async()=>{
+  const n=$("sName").value.trim(),pw=$("sPass").value,msg=$("sMsg");
+  if(!n){msg.textContent="Enter a room name.";return}
+  if(pw.length<6){msg.textContent="Use a passcode of at least 6 characters.";return}
+  if(!(window.crypto&&crypto.subtle)){msg.textContent="Secure rooms need a secure (HTTPS) page.";return}
+  msg.textContent="Deriving key…";
+  try{
+    const id="s-"+(await hx("relay:"+n.toLowerCase())).slice(0,16),key=await mk(pw,new Uint8Array(await crypto.subtle.digest("SHA-256",te("salt:"+id))));
+    let r=CH.find(c=>c.id===id);
+    if(r&&r.ver){try{await dec(key,ub(r.ver.iv),ub(r.ver.ct))}catch(e){msg.textContent="Wrong passcode.";return}}
+    else{const v=await enc(key,te("relay-ok"));r={id,n,sec:1,ver:{iv:b64(v.iv),ct:b64(v.ct)}};CH.push(r);saveRooms()}
+    keys[id]=key;$("sPass").value="";$("sdlg").close();S.view="talk";setRoom(id)
+  }catch(e){msg.textContent="Could not create the room. Try again."}
+};
+$("leave").onclick=()=>{const c=CH.find(x=>x.id===S.room);if(!c||!c.sec)return;CH.splice(CH.indexOf(c),1);delete keys[c.id];saveRooms();S.room="dispatch";render()};
+/* real presence: heartbeat between open Relay tabs */
+const peers={};
+async function hello(){if(!bc)return;const c=CH.find(x=>x.id===S.room);if(!c)return;try{if(c.sec){const k=keys[c.id];if(!k)return;const a=await enc(k,te(D.name));bc.postMessage({type:"hi",from:me,room:c.id,sec:1,iv:a.iv,ct:a.ct})}else bc.postMessage({type:"hi",from:me,room:c.id,name:D.name})}catch(e){}}
+if(bc)bc.addEventListener("message",async e=>{const m=e.data;if(!m||m.from===me)return;
+  if(m.type==="bye"){for(const r in peers)delete peers[r][m.from];render();return}
+  if(m.type!=="hi")return;let n=m.name;const c=CH.find(x=>x.id===m.room);if(!c)return;
+  if(m.sec){const k=keys[m.room];if(!k)return;try{n=new TextDecoder().decode(await dec(k,m.iv,m.ct))}catch(x){return}}else if(c.sec)return;
+  const fresh=!(peers[m.room]&&peers[m.room][m.from]);(peers[m.room]=peers[m.room]||{})[m.from]={n:String(n).slice(0,16),t:Date.now()};render();if(fresh)hello()});
+setInterval(()=>{hello();let ch=false;const t=Date.now();for(const r in peers)for(const id in peers[r])if(t-peers[r][id].t>12000){delete peers[r][id];ch=true}if(ch)render()},5000);
+addEventListener("pagehide",()=>{if(bc)bc.postMessage({type:"bye",from:me})});
+const FB=window.fbBus;
+$("aMsg").textContent=FB?"Connecting to Firebase…":"Local mode: Firebase did not load, so voice stays inside this browser.";
+if(FB){CH.filter(c=>!c.sec).forEach(c=>FB.watch(c.id));FB.ready.then(()=>{$("aMsg").textContent=FB.uid()?"Connected to Firebase (private-walkie-talkie).":"Firebase sign-in failed ("+FB.err()+"). Turn on Anonymous sign-in in Firebase Authentication."})}
+$("aGo").onclick=async()=>{if(!FB)return;try{$("aMsg").textContent="Signing in…";const ok=await FB.login($("aMail").value.trim(),$("aPass").value);$("aPass").value="";$("aMsg").textContent=ok?"Admin access confirmed.":"Signed in, but this account is not in the admins list.";$("aClr").hidden=!ok}catch(e){$("aMsg").textContent="Sign in failed ("+(e.code||"error")+")."}};
+$("aClr").onclick=async()=>{if(FB&&confirm("Clear all live data in this channel?")){try{await FB.clear(S.room);$("aMsg").textContent="Channel data cleared."}catch(e){$("aMsg").textContent="Not allowed for this account."}}};
+env();render();hello();
+</script>
+</body>
+</html>
