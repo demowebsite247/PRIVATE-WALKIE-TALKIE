@@ -377,7 +377,7 @@ async function tx(b,end){if(!bc)return;const c=CH.find(x=>x.id===S.room),k=keys[
   
 let R=null;
 const peerName=(r,f)=>(peers[r]&&peers[r][f]&&peers[r][f].n)||"Someone";
-function rxDone(){if(!R)return;const r=R;R=null;clearTimeout(r.t);try{r.a.pause()}catch(e){}if(r.u)URL.revokeObjectURL(r.u);S.rx=null;log.unshift([r.name,time()]);render()}
+function rxDone(){if(!R)return;const r=R;R=null;clearTimeout(r.t);try{r.a.pause()}catch(e){}if(r.u)URL.revokeObjectURL(r.u);S.rx=null;sfx.rxClose();log.unshift([r.name,time()]);render()}
 function pump(){if(!R)return;
   while(R.q[R.n]!==undefined){const x=R.q[R.n];
     if(x==="end"){R.fin=true;R.n++;break}
@@ -389,7 +389,7 @@ function pump(){if(!R)return;
 function onChunk(m,buf){const key=m.from+":"+m.sid;
   if(!R||R.key!==key){if(R)return;
     R={key,name:peerName(m.room,m.from),q:{},n:0,a:new Audio(),parts:[],mime:m.mime,mse:!!(window.MediaSource&&m.mime&&MediaSource.isTypeSupported(m.mime))};
-    R.a.volume=D.vol;S.rx=R.name;render();beep(660,.08);
+    R.a.volume=D.vol;S.rx=R.name;render();sfx.rxOpen();
     if(R.mse){R.ms=new MediaSource();R.u=URL.createObjectURL(R.ms);R.a.src=R.u;R.ms.addEventListener("sourceopen",()=>{if(!R||R.sb)return;R.sb=R.ms.addSourceBuffer(m.mime);R.sb.mode="sequence";R.sb.addEventListener("updateend",pump);pump()},{once:true})}}
   clearTimeout(R.t);R.t=setTimeout(rxDone,4000);R.q[m.seq]=m.end?"end":buf;pump()}
 if(bc)bc.addEventListener("message",async e=>{const m=e.data;if(!m||m.type!=="v"||m.from===me||m.room!==S.room||S.tx)return;const c=CH.find(x=>x.id===m.room);let buf=m.buf;
@@ -486,8 +486,8 @@ async function level(on){
     raf=setTimeout(f,70)
   })();
 }
-function down(){if(S.tx||S.rx)return;S.tx=true;status();level(true);beep(1100,.06);buzz(15)}
-function up(){if(!S.tx)return;S.tx=false;status();level(false);const sent=!!(rec&&rec.state==="recording");if(sent){rec.stop();rec=null}beep(700,.1);if(sent)log.unshift([D.name+" (you)",time()]);render()}
+function down(){if(S.tx||S.rx)return;S.tx=true;status();level(true);sfx.pttOn();buzz(15)}
+function up(){if(!S.tx)return;S.tx=false;status();level(false);const sent=!!(rec&&rec.state==="recording");if(sent){rec.stop();rec=null}sfx.pttOff();if(sent)log.unshift([D.name+" (you)",time()]);render()}
 const press=()=>{if(D.mode==="latch")S.tx?up():down();else down()};
 const release=()=>{if(D.mode!=="latch")up()};
 const p=$("ptt");
@@ -501,7 +501,7 @@ addEventListener("keydown",e=>{
 });
 addEventListener("keyup",e=>{if(e.code==="Space"){e.preventDefault();release()}});
 addEventListener("blur",release);
-function setRoom(id){const c=CH.find(x=>x.id===id);if(!c)return;if(c.sec&&!keys[id]){openS(c);return}if(S.tx)up();S.room=id;S.rx=null;render();hello()}
+function setRoom(id){const c=CH.find(x=>x.id===id);if(!c)return;if(c.sec&&!keys[id]){openS(c);return}if(S.tx)up();S.room=id;S.rx=null;render();hello();sfx.chan()}
 function delRoom(id){const c=CH.find(x=>x.id===id);if(!c||!c.sec)return;if(!confirm('Delete secure room "'+c.n+'" from this device? You will need the room name and passcode to join it again.'))return;if(S.tx)up();CH.splice(CH.indexOf(c),1);delete keys[id];delete peers[id];saveRooms();if(S.room===id){S.room="dispatch";S.rx=null;hello()}render()}
 /* layout recalculation: no reload, state stays in S */
 let rt;const re=()=>{clearTimeout(rt);rt=setTimeout(env,60)};
@@ -521,7 +521,7 @@ try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().
 (function(){const nd=$("ndlg"),inp=$("nName");
   if(D.named||(D.name&&D.name!=="You")){if(!D.named){D.named=true;save()}return}
   nd.addEventListener("cancel",e=>e.preventDefault());
-  const go=()=>{const v=inp.value.trim();if(!v){inp.focus();return}D.name=v.slice(0,16);D.named=true;save();sync();nd.close();render();hello()};
+  const go=()=>{const v=inp.value.trim();if(!v){inp.focus();return}D.name=v.slice(0,16);D.named=true;save();sync();nd.close();render();hello();sfx.on()};
   $("nGo").onclick=go;inp.addEventListener("keydown",e=>{if(e.key==="Enter")go()});
   nd.showModal();inp.focus()})();
 /* secure rooms: PBKDF2 (200k) key from passcode, AES-256-GCM voice encryption */
@@ -580,6 +580,32 @@ function wclick(strong){const a=wa();if(!a)return;const t=a.currentTime;
   og.gain.setValueAtTime(strong?.35:.14,t);og.gain.exponentialRampToValueAtTime(.001,t+.05);o.connect(og);og.connect(a.destination);o.start(t);o.stop(t+.06);
   if(strong){const p=a.createOscillator(),pg=a.createGain();p.type="triangle";p.frequency.value=2100+Math.random()*300;pg.gain.setValueAtTime(.03,t);pg.gain.exponentialRampToValueAtTime(.001,t+.025);p.connect(pg);pg.connect(a.destination);p.start(t);p.stop(t+.03)}}
 const tick=()=>{buzz(6);wclick(true)};
+/* real walkie-talkie sounds, synthesised (no files): key click, talk-permit pip, roger beep, squelch burst + tail, channel chirp, soft static while receiving. Respects the Beep on/off key and the volume knob. */
+const sfx=(()=>{
+  let nz=null,hs=null;
+  const A=()=>{if(!D.beep)return null;const a=wa();return a&&a.state!=="closed"?a:null};
+  const V=()=>Math.max(.25,D.vol);
+  const N=a=>{if(!nz){nz=a.createBuffer(1,a.sampleRate,a.sampleRate);const d=nz.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}return nz};
+  function burst(a,t,dur,fc,g,q){const s=a.createBufferSource();s.buffer=N(a);s.loop=true;const f=a.createBiquadFilter();f.type="bandpass";f.frequency.value=fc;f.Q.value=q||.8;const e=a.createGain();e.gain.setValueAtTime(.0001,t);e.gain.exponentialRampToValueAtTime(g*V(),t+.008);e.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(f);f.connect(e);e.connect(a.destination);s.start(t,Math.random()*.5);s.stop(t+dur+.02)}
+  function pip(a,t,fr,dur,g){const o=a.createOscillator(),lp=a.createBiquadFilter(),e=a.createGain();o.type="square";o.frequency.value=fr;lp.type="lowpass";lp.frequency.value=3200;e.gain.setValueAtTime(.0001,t);e.gain.linearRampToValueAtTime(g*V(),t+.004);e.gain.setValueAtTime(g*V(),t+dur-.012);e.gain.linearRampToValueAtTime(.0001,t+dur);o.connect(lp);lp.connect(e);e.connect(a.destination);o.start(t);o.stop(t+dur+.02)}
+  const click=(a,t,g)=>burst(a,t,.02,3800,g,1.4);
+  function hissStop(){if(!hs)return;const h=hs;hs=null;try{h.g.gain.cancelScheduledValues(0);h.g.gain.setTargetAtTime(.0001,h.a.currentTime,.03);h.s.stop(h.a.currentTime+.2)}catch(e){}}
+  return{
+    /* you press the talk key: key click + talk-permit pip */
+    pttOn(){const a=A();if(!a)return;const t=a.currentTime;click(a,t,.6);pip(a,t+.03,1050,.07,.1);burst(a,t+.11,.05,2600,.1,.8)},
+    /* you release: roger beep (two quick rising tones) + squelch tail + key click */
+    pttOff(){const a=A();if(!a)return;const t=a.currentTime;pip(a,t,1500,.06,.1);pip(a,t+.085,1900,.06,.1);burst(a,t+.17,.16,2200,.28,.7);click(a,t+.34,.4)},
+    /* someone starts talking: squelch opens (static burst) and soft hiss under the voice */
+    rxOpen(){const a=A();if(!a)return;hissStop();const t=a.currentTime;burst(a,t,.14,2400,.32,.7);click(a,t,.5);
+      const s=a.createBufferSource();s.buffer=N(a);s.loop=true;const f=a.createBiquadFilter();f.type="bandpass";f.frequency.value=3000;f.Q.value=.5;const g=a.createGain();g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(.014*V(),t+.15);s.connect(f);f.connect(g);g.connect(a.destination);s.start(t+.1);hs={s,g,a}},
+    /* they stop: their roger beep + squelch tail */
+    rxClose(){hissStop();const a=A();if(!a)return;const t=a.currentTime;pip(a,t,1700,.07,.09);burst(a,t+.1,.17,2300,.26,.7);click(a,t+.28,.35)},
+    /* channel / group changed: click + two-note chirp */
+    chan(){const a=A();if(!a)return;const t=a.currentTime;click(a,t,.6);pip(a,t+.03,880,.05,.09);pip(a,t+.09,1320,.07,.09)},
+    /* joined / powered on: rising three-note power-on chirp */
+    on(){const a=A();if(!a)return;const t=a.currentTime;burst(a,t,.08,2600,.2,.8);pip(a,t+.05,660,.07,.09);pip(a,t+.14,880,.07,.09);pip(a,t+.23,1320,.1,.09)}
+  }})();
+
 function attach(el,cfg){
   let st=null;
   el.addEventListener("pointerdown",e=>{wa();e.preventDefault();try{el.setPointerCapture(e.pointerId)}catch(x){}try{el.focus({preventScroll:true})}catch(x){}
